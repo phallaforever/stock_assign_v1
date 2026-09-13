@@ -1641,6 +1641,32 @@
             renderSecondaryViews();
         }
 
+        function confirmRemoveMasterItem(itemId) {
+            const item = masterItems.find(masterItem => masterItem.id === itemId);
+            if (!item) return;
+
+            const prUsage = purchaseRequests.filter(pr => pr.items.some(line => line.itemId === itemId)).length;
+            const stockUsage = inventory.filter(stock => stock.itemId === itemId || stock.item.toLowerCase() === item.name.toLowerCase()).length;
+
+            if (prUsage > 0 || stockUsage > 0) {
+                showAlertModal(
+                    `This item is used in ${prUsage} PR record${prUsage === 1 ? '' : 's'} and ${stockUsage} stock received record${stockUsage === 1 ? '' : 's'}. Remove those records first.`,
+                    'Cannot Remove Item'
+                );
+                return;
+            }
+
+            showConfirmDialog(
+                'Remove Item Master',
+                `Are you sure you want to remove "${item.name}" from Item Master?`,
+                () => {
+                    masterItems = masterItems.filter(masterItem => masterItem.id !== itemId);
+                    saveMasterItems();
+                    renderSecondaryViews();
+                }
+            );
+        }
+
         function createPurchaseRequest() {
             const prInput = document.getElementById('pr-id-input');
             const itemSelect = document.getElementById('pr-item-select');
@@ -1685,6 +1711,31 @@
             if (prInput) prInput.value = '';
             if (qtyInput) qtyInput.value = '';
             renderSecondaryViews();
+        }
+
+        function confirmRemovePurchaseRequest(prId) {
+            const receivedCount = inventory.filter(item => (item.pr || '') === prId).length;
+            if (receivedCount > 0) {
+                showAlertModal(
+                    `This PR has ${receivedCount} stock received record${receivedCount === 1 ? '' : 's'}. Remove those stock received records first.`,
+                    'Cannot Remove PR'
+                );
+                return;
+            }
+
+            const pr = purchaseRequests.find(request => request.id === prId);
+            if (!pr) return;
+
+            showConfirmDialog(
+                'Remove Purchase Request',
+                `Are you sure you want to remove PR "${pr.id}"?`,
+                () => {
+                    purchaseRequests = purchaseRequests.filter(request => request.id !== prId);
+                    savePurchaseRequests();
+                    renderSecondaryViews();
+                    renderInventory();
+                }
+            );
         }
 
         // Ripple Effect Click Transition
@@ -1949,6 +2000,9 @@
                     <td>${escapeHtml(stock ? stock.received : 0)}</td>
                     <td>${escapeHtml(stock ? stock.remaining : 0)}</td>
                     <td>${statusPill(stock ? stock.status : 'Open')}</td>
+                    <td>
+                        <button onclick="createRipple(event); confirmRemoveMasterItem('${jsString(item.id)}')" class="ripple-btn remove-btn text-red-400 hover:text-red-300 bg-red-950/40 hover:bg-red-950 rounded border border-red-900/50 transition-all text-center">Remove</button>
+                    </td>
                 </tr>
                 `;
             }).join('');
@@ -1986,8 +2040,8 @@
                     </div>
                     <div class="data-table-wrap">
                         <table class="data-table">
-                            <thead><tr><th>Item</th><th>SKU</th><th>Unit</th><th>Category</th><th>Type</th><th>Parts</th><th>PR Sets</th><th>Received Sets</th><th>Remaining Sets</th><th>Status</th></tr></thead>
-                            <tbody>${itemRows || '<tr><td colspan="10">No items yet.</td></tr>'}</tbody>
+                            <thead><tr><th>Item</th><th>SKU</th><th>Unit</th><th>Category</th><th>Type</th><th>Parts</th><th>PR Sets</th><th>Received Sets</th><th>Remaining Sets</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody>${itemRows || '<tr><td colspan="11">No items yet.</td></tr>'}</tbody>
                         </table>
                     </div>
                 </div>
@@ -2009,6 +2063,9 @@
                     <td>${escapeHtml(row.remaining)}</td>
                     <td>${escapeHtml(row.createdAt)}</td>
                     <td>${statusPill(row.status)}</td>
+                    <td>
+                        <button onclick="createRipple(event); confirmRemovePurchaseRequest('${jsString(row.pr)}')" class="ripple-btn remove-btn text-red-400 hover:text-red-300 bg-red-950/40 hover:bg-red-950 rounded border border-red-900/50 transition-all text-center">Remove</button>
+                    </td>
                 </tr>
             `).join('');
 
@@ -2037,8 +2094,8 @@
                     </div>
                     <div class="data-table-wrap">
                         <table class="data-table">
-                            <thead><tr><th>PR#</th><th>Items</th><th>Requested</th><th>Received</th><th>Assigned</th><th>Remaining</th><th>Date</th><th>Status</th></tr></thead>
-                            <tbody>${rowHtml || '<tr><td colspan="8">No PR records yet.</td></tr>'}</tbody>
+                            <thead><tr><th>PR#</th><th>Items</th><th>Requested</th><th>Received</th><th>Assigned</th><th>Remaining</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody>${rowHtml || '<tr><td colspan="9">No PR records yet.</td></tr>'}</tbody>
                         </table>
                     </div>
                 </div>
