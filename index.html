@@ -166,8 +166,55 @@
 
         /* Custom Dropdown Animation & Styles */
         .custom-dropdown-menu {
+            position: absolute;
+            z-index: 60;
             transform-origin: top;
             transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .form-dropdown {
+            position: relative;
+            min-width: 0;
+        }
+        .form-dropdown-trigger {
+            width: 100%;
+            min-height: 44px;
+            border-radius: 12px;
+            border: 1px solid #2b405f;
+            background: #0b1423;
+            color: var(--text);
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+            transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+        .form-dropdown-trigger:hover,
+        .form-dropdown-trigger.active {
+            border-color: #2a83ff;
+            background: #111d31;
+            box-shadow: 0 0 0 3px rgba(42,131,255,.12);
+        }
+        .form-dropdown-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .form-dropdown-arrow {
+            color: #8da0bd;
+            font-weight: 800;
+            transition: transform .2s ease, color .2s ease;
+        }
+        .form-dropdown-arrow.rotate-180 {
+            color: #58a1ff;
+        }
+        .data-panel.dropdown-open,
+        .custom-modal-content.dropdown-open {
+            overflow: visible;
+            position: relative;
+            z-index: 70;
         }
         .stock-card.dropdown-open,
         .stock-card.expanded-card.dropdown-open {
@@ -459,6 +506,40 @@
             color: var(--text);
             padding: 0 12px;
             outline: none;
+        }
+        select.filter-control,
+        .form-select {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image:
+                linear-gradient(45deg, transparent 50%, #8da0bd 50%),
+                linear-gradient(135deg, #8da0bd 50%, transparent 50%);
+            background-position:
+                calc(100% - 18px) 50%,
+                calc(100% - 12px) 50%;
+            background-size: 6px 6px, 6px 6px;
+            background-repeat: no-repeat;
+            padding-right: 34px;
+        }
+        .form-select {
+            width: 100%;
+            min-height: 40px;
+            border-radius: 12px;
+            border: 1px solid #334760;
+            background-color: #020617;
+            color: #f1f5f9;
+            padding: 0 34px 0 12px;
+            outline: none;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+        .form-select:focus,
+        .filter-control:focus {
+            border-color: #2a83ff;
+            box-shadow: 0 0 0 3px rgba(42,131,255,.14);
+        }
+        .filter-control:disabled {
+            opacity: .55;
+            cursor: not-allowed;
         }
 
         .page-header {
@@ -1061,12 +1142,12 @@
                 </div>
                 <div>
                     <label class="text-xs text-slate-400 block mb-1">PR# (Purchase Req)</label>
-                    <input type="text" id="new-pr-input" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-semibold" placeholder="PR-9001">
+                    <div id="new-pr-dropdown"></div>
                 </div>
             </div>
 
             <!-- Dynamic Items Container inside Modal -->
-            <div class="space-y-3 overflow-y-auto pr-1 flex-1 max-h-[36vh]" id="modal-items-container">
+            <div class="space-y-3 pr-1 flex-none" id="modal-items-container">
                 <!-- Dynamically populated item rows -->
             </div>
 
@@ -1123,6 +1204,8 @@
 
     <script>
         const INVENTORY_STORAGE_KEY = 'stock-received-inventory-v1';
+        const ITEM_MASTER_STORAGE_KEY = 'stock-received-item-master-v1';
+        const PR_STORAGE_KEY = 'stock-received-pr-list-v1';
         const defaultInventory = [
             {
                 id: 'FNG-1',
@@ -1171,6 +1254,8 @@
         ];
 
         let inventory = loadInventory();
+        let masterItems = loadMasterItems();
+        let purchaseRequests = loadPurchaseRequests();
         let pendingAction = null;
         let modalRows = [];
         let searchQuery = '';
@@ -1196,7 +1281,10 @@
                 id: item.id || `FNG-${index + 1}`,
                 pr: item.pr || '',
                 createdAt: item.createdAt || getCurrentFormattedDateTime(),
+                itemId: item.itemId || '',
                 item: item.item || 'Untitled item',
+                partLabel: item.partLabel || '',
+                partsPerSet: Number.parseInt(item.partsPerSet || 1, 10) || 1,
                 qty: Number.parseInt(item.qty, 10) || 0,
                 isExpanded: Boolean(item.isExpanded),
                 locations: Array.isArray(item.locations) ? item.locations.map(loc => ({
@@ -1233,6 +1321,157 @@
             }
         }
 
+        function buildDefaultMasterItems() {
+            const byName = new Map();
+            inventory.forEach(item => {
+                const name = (item.item || '').trim();
+                if (!name) return;
+                const key = name.toLowerCase();
+                if (!byName.has(key)) {
+                    byName.set(key, {
+                        id: `ITEM-${String(byName.size + 1).padStart(3, '0')}`,
+                        name,
+                        sku: `SKU-${String(byName.size + 1).padStart(3, '0')}`,
+                        unit: 'pcs',
+                        category: 'General',
+                        itemType: 'Single',
+                        partsPerSet: 1
+                    });
+                }
+            });
+            return Array.from(byName.values());
+        }
+
+        function normalizeMasterItems(items) {
+            if (!Array.isArray(items) || items.length === 0) return buildDefaultMasterItems();
+            return items.map((item, index) => ({
+                id: item.id || `ITEM-${String(index + 1).padStart(3, '0')}`,
+                name: item.name || item.item || 'Untitled item',
+                sku: item.sku || `SKU-${String(index + 1).padStart(3, '0')}`,
+                unit: item.unit || 'pcs',
+                category: item.category || 'General',
+                itemType: item.itemType || (Number.parseInt(item.partsPerSet || 1, 10) > 1 ? 'Set' : 'Single'),
+                partsPerSet: Number.parseInt(item.partsPerSet || 1, 10) || 1
+            }));
+        }
+
+        function loadMasterItems() {
+            try {
+                const savedItems = localStorage.getItem(ITEM_MASTER_STORAGE_KEY);
+                return normalizeMasterItems(savedItems ? JSON.parse(savedItems) : null);
+            } catch (error) {
+                console.warn('Unable to load item master:', error);
+                return buildDefaultMasterItems();
+            }
+        }
+
+        function saveMasterItems() {
+            try {
+                localStorage.setItem(ITEM_MASTER_STORAGE_KEY, JSON.stringify(masterItems));
+                return true;
+            } catch (error) {
+                console.warn('Unable to save item master:', error);
+                return false;
+            }
+        }
+
+        function findMasterItemByName(name) {
+            return masterItems.find(item => item.name.toLowerCase() === String(name || '').toLowerCase());
+        }
+
+        function findMasterItemById(itemId) {
+            return masterItems.find(item => item.id === itemId);
+        }
+
+        function getPartLabels(partsPerSet) {
+            const count = Math.max(1, Number.parseInt(partsPerSet || 1, 10) || 1);
+            return Array.from({ length: count }, (_, index) => `${index + 1}/${count}`);
+        }
+
+        function getReceivedEntriesForPrLine(prId, line) {
+            return inventory.filter(item => {
+                const samePr = (item.pr || '') === prId;
+                const sameItem = line.itemId ? item.itemId === line.itemId : item.item === line.itemName;
+                return samePr && sameItem;
+            });
+        }
+
+        function getReceivedSetsForPrLine(prId, line) {
+            const partsPerSet = Number.parseInt(line.partsPerSet || 1, 10) || 1;
+            const entries = getReceivedEntriesForPrLine(prId, line);
+            if (partsPerSet <= 1) {
+                return entries.reduce((sum, item) => sum + (Number.parseInt(item.qty || 0, 10) || 0), 0);
+            }
+
+            const partTotals = getPartLabels(partsPerSet).map(partLabel => {
+                return entries
+                    .filter(item => item.partLabel === partLabel)
+                    .reduce((sum, item) => sum + (Number.parseInt(item.qty || 0, 10) || 0), 0);
+            });
+
+            return partTotals.length ? Math.min(...partTotals) : 0;
+        }
+
+        function buildDefaultPurchaseRequests() {
+            const grouped = new Map();
+            inventory.forEach(stock => {
+                const pr = stock.pr || 'No PR';
+                const masterItem = findMasterItemByName(stock.item);
+                if (!grouped.has(pr)) {
+                    grouped.set(pr, {
+                        id: pr,
+                        createdAt: stock.createdAt || getCurrentFormattedDateTime(),
+                        status: 'Open',
+                        items: []
+                    });
+                }
+                grouped.get(pr).items.push({
+                    itemId: masterItem ? masterItem.id : '',
+                    itemName: stock.item,
+                    qty: Number.parseInt(stock.qty || 0, 10) || 0,
+                    itemType: masterItem ? masterItem.itemType : 'Single',
+                    partsPerSet: masterItem ? masterItem.partsPerSet : 1
+                });
+            });
+            return Array.from(grouped.values());
+        }
+
+        function normalizePurchaseRequests(prs) {
+            if (!Array.isArray(prs) || prs.length === 0) return buildDefaultPurchaseRequests();
+            return prs.map((pr, index) => ({
+                id: pr.id || pr.pr || `PR-${String(index + 1).padStart(4, '0')}`,
+                createdAt: pr.createdAt || getCurrentFormattedDateTime(),
+                status: pr.status || 'Open',
+                items: Array.isArray(pr.items) ? pr.items.map(line => ({
+                    itemId: line.itemId || '',
+                    itemName: line.itemName || line.item || 'Untitled item',
+                    qty: Number.parseInt(line.qty || 0, 10) || 0,
+                    itemType: line.itemType || (Number.parseInt(line.partsPerSet || 1, 10) > 1 ? 'Set' : 'Single'),
+                    partsPerSet: Number.parseInt(line.partsPerSet || 1, 10) || 1
+                })) : []
+            }));
+        }
+
+        function loadPurchaseRequests() {
+            try {
+                const savedPrs = localStorage.getItem(PR_STORAGE_KEY);
+                return normalizePurchaseRequests(savedPrs ? JSON.parse(savedPrs) : null);
+            } catch (error) {
+                console.warn('Unable to load PR list:', error);
+                return buildDefaultPurchaseRequests();
+            }
+        }
+
+        function savePurchaseRequests() {
+            try {
+                localStorage.setItem(PR_STORAGE_KEY, JSON.stringify(purchaseRequests));
+                return true;
+            } catch (error) {
+                console.warn('Unable to save PR list:', error);
+                return false;
+            }
+        }
+
         function escapeHtml(value) {
             const text = value === undefined || value === null ? '' : String(value);
             return text
@@ -1252,7 +1491,7 @@
 
         function getStatusClass(status) {
             if (status === 'Complete') return 'status-complete';
-            if (status === 'Over-assigned') return 'status-over';
+            if (status === 'Over-assigned' || status === 'Over-received') return 'status-over';
             return 'status-open';
         }
 
@@ -1286,65 +1525,166 @@
         }
 
         function getItemRows() {
-            const grouped = new Map();
-            inventory.forEach(item => {
-                const key = item.item.toLowerCase().trim();
-                if (!grouped.has(key)) {
-                    grouped.set(key, {
-                        item: item.item,
-                        qty: 0,
-                        assigned: 0,
-                        prs: new Set(),
-                        fngs: new Set()
-                    });
-                }
-                const row = grouped.get(key);
-                row.qty += Number.parseInt(item.qty || 0, 10) || 0;
-                row.assigned += totalAbbr(item);
-                if (item.pr) row.prs.add(item.pr);
-                if (item.id) row.fngs.add(item.id);
-            });
+            return masterItems.map(masterItem => {
+                const prLines = [];
+                purchaseRequests.forEach(pr => {
+                    pr.items
+                        .filter(line => line.itemId === masterItem.id || line.itemName.toLowerCase() === masterItem.name.toLowerCase())
+                        .forEach(line => prLines.push({ pr, line }));
+                });
+                const requested = prLines.reduce((sum, row) => sum + (Number.parseInt(row.line.qty || 0, 10) || 0), 0);
+                const received = prLines.reduce((sum, row) => sum + getReceivedSetsForPrLine(row.pr.id, row.line), 0);
+                const itemEntries = inventory.filter(item => item.itemId === masterItem.id || item.item.toLowerCase() === masterItem.name.toLowerCase());
+                const assigned = itemEntries.reduce((sum, item) => sum + totalAbbr(item), 0);
+                const remaining = requested - received;
+                const prs = new Set(prLines.map(row => row.pr.id));
+                const fngs = new Set(itemEntries.map(item => item.id).filter(Boolean));
+                const status = remaining === 0 && requested > 0 ? 'Complete' : remaining < 0 ? 'Over-received' : 'Open';
 
-            return Array.from(grouped.values()).map(row => ({
-                item: row.item,
-                qty: row.qty,
-                assigned: row.assigned,
-                remaining: row.qty - row.assigned,
-                prs: Array.from(row.prs).join(', '),
-                fngs: Array.from(row.fngs).join(', '),
-                status: row.qty - row.assigned === 0 ? 'Complete' : row.qty - row.assigned < 0 ? 'Over-assigned' : 'Open'
-            }));
+                return {
+                    item: masterItem.name,
+                    sku: masterItem.sku,
+                    itemType: masterItem.itemType,
+                    partsPerSet: masterItem.partsPerSet,
+                    requested,
+                    received,
+                    assigned,
+                    remaining,
+                    prs: Array.from(prs).join(', '),
+                    fngs: Array.from(fngs).join(', '),
+                    status
+                };
+            });
         }
 
         function getPrRows() {
-            const grouped = new Map();
-            inventory.forEach(item => {
-                const key = item.pr || 'No PR';
-                if (!grouped.has(key)) {
-                    grouped.set(key, {
-                        pr: key,
-                        items: 0,
-                        qty: 0,
-                        assigned: 0,
-                        createdAt: item.createdAt || ''
-                    });
-                }
-                const row = grouped.get(key);
-                row.items += 1;
-                row.qty += Number.parseInt(item.qty || 0, 10) || 0;
-                row.assigned += totalAbbr(item);
-                if (item.createdAt && item.createdAt < row.createdAt) row.createdAt = item.createdAt;
+            return purchaseRequests.map(pr => {
+                const requested = pr.items.reduce((sum, line) => sum + (Number.parseInt(line.qty || 0, 10) || 0), 0);
+                const receivedItems = inventory.filter(item => (item.pr || '') === pr.id);
+                const received = pr.items.reduce((sum, line) => sum + getReceivedSetsForPrLine(pr.id, line), 0);
+                const assigned = receivedItems.reduce((sum, item) => sum + totalAbbr(item), 0);
+                const remaining = requested - received;
+                const status = remaining === 0 ? 'Complete' : remaining < 0 ? 'Over-received' : 'Open';
+                return {
+                    pr: pr.id,
+                    items: pr.items.length,
+                    requested,
+                    received,
+                    assigned,
+                    remaining,
+                    createdAt: pr.createdAt,
+                    status
+                };
             });
-
-            return Array.from(grouped.values()).map(row => ({
-                ...row,
-                remaining: row.qty - row.assigned,
-                status: row.qty - row.assigned === 0 ? 'Complete' : row.qty - row.assigned < 0 ? 'Over-assigned' : 'Open'
-            }));
         }
 
         function statusPill(status) {
             return `<span class="status-pill ${getStatusClass(status)}">${escapeHtml(status)}</span>`;
+        }
+
+        function syncItemTypeFields() {
+            const typeInput = document.getElementById('item-type-input');
+            const partsInput = document.getElementById('item-parts-input');
+            if (!typeInput || !partsInput) return;
+
+            const isSet = typeInput.value === 'Set';
+            partsInput.disabled = !isSet;
+            partsInput.min = isSet ? '2' : '1';
+            if (!isSet) {
+                partsInput.value = '1';
+            } else if (!partsInput.value || Number.parseInt(partsInput.value, 10) < 2) {
+                partsInput.value = '2';
+            }
+        }
+
+        function createMasterItem() {
+            const nameInput = document.getElementById('item-name-input');
+            const skuInput = document.getElementById('item-sku-input');
+            const unitInput = document.getElementById('item-unit-input');
+            const categoryInput = document.getElementById('item-category-input');
+            const typeInput = document.getElementById('item-type-input');
+            const partsInput = document.getElementById('item-parts-input');
+            const name = (nameInput?.value || '').trim();
+            const itemType = typeInput?.value === 'Set' ? 'Set' : 'Single';
+            const partsPerSet = itemType === 'Set' ? Number.parseInt(partsInput?.value || 1, 10) : 1;
+
+            if (!name) {
+                showAlertModal('Please enter an item name.', 'Item Required');
+                return;
+            }
+            if (masterItems.some(item => item.name.toLowerCase() === name.toLowerCase())) {
+                showAlertModal('This item already exists in Item List.', 'Duplicate Item');
+                return;
+            }
+            if (itemType === 'Set' && (Number.isNaN(partsPerSet) || partsPerSet < 2)) {
+                showAlertModal('Set items need at least 2 parts per set.', 'Parts Required');
+                return;
+            }
+
+            masterItems.push({
+                id: `ITEM-${String(masterItems.length + 1).padStart(3, '0')}`,
+                name,
+                sku: (skuInput?.value || `SKU-${String(masterItems.length + 1).padStart(3, '0')}`).trim(),
+                unit: (unitInput?.value || 'pcs').trim(),
+                category: (categoryInput?.value || 'General').trim(),
+                itemType,
+                partsPerSet
+            });
+
+            saveMasterItems();
+            nameInput.value = '';
+            if (skuInput) skuInput.value = '';
+            if (unitInput) unitInput.value = 'pcs';
+            if (categoryInput) categoryInput.value = '';
+            if (typeInput) typeInput.value = 'Single';
+            if (partsInput) partsInput.value = '1';
+            renderSecondaryViews();
+        }
+
+        function createPurchaseRequest() {
+            const prInput = document.getElementById('pr-id-input');
+            const itemSelect = document.getElementById('pr-item-select');
+            const qtyInput = document.getElementById('pr-qty-input');
+            const prId = (prInput?.value || '').trim();
+            const itemId = itemSelect?.value || '';
+            const qty = Number.parseInt(qtyInput?.value || 0, 10);
+            const item = masterItems.find(masterItem => masterItem.id === itemId);
+
+            if (!prId) {
+                showAlertModal('Please enter a PR number.', 'PR Required');
+                return;
+            }
+            if (!item) {
+                showAlertModal('Please select an item from Item List first.', 'Item Required');
+                return;
+            }
+            if (Number.isNaN(qty) || qty <= 0) {
+                showAlertModal('Please enter a valid PR quantity.', 'Quantity Required');
+                return;
+            }
+
+            let pr = purchaseRequests.find(request => request.id.toLowerCase() === prId.toLowerCase());
+            if (!pr) {
+                pr = {
+                    id: prId,
+                    createdAt: getCurrentFormattedDateTime(),
+                    status: 'Open',
+                    items: []
+                };
+                purchaseRequests.unshift(pr);
+            }
+
+            const existingLine = pr.items.find(line => line.itemId === item.id);
+            if (existingLine) {
+                existingLine.qty += qty;
+            } else {
+                pr.items.push({ itemId: item.id, itemName: item.name, qty, itemType: item.itemType, partsPerSet: item.partsPerSet });
+            }
+
+            savePurchaseRequests();
+            if (prInput) prInput.value = '';
+            if (qtyInput) qtyInput.value = '';
+            renderSecondaryViews();
         }
 
         // Ripple Effect Click Transition
@@ -1465,7 +1805,7 @@
                     ${statCard('Received Qty', totals.totalQty, 'Total pieces')}
                     ${statCard('Remaining Qty', totals.remainingQty, 'Still needs assignment')}
                     ${statCard('Assigned Qty', totals.assignedQty, 'Placed in zones')}
-                    ${statCard('Open Items', totals.openItems, 'Not fully assigned')}
+                    ${statCard('PR Count', purchaseRequests.length, 'Purchase requests')}
                     ${statCard('Completed', totals.completeItems, 'Fully assigned')}
                     ${statCard('Over Assigned', totals.overItems, 'Needs review')}
                 </div>
@@ -1544,6 +1884,7 @@
                         <td>${escapeHtml(item.pr || '-')}</td>
                         <td>${escapeHtml(item.createdAt)}</td>
                         <td>${escapeHtml(item.item)}</td>
+                        <td>${escapeHtml(item.partLabel || '-')}</td>
                         <td>${escapeHtml(item.qty)}</td>
                         <td>${escapeHtml(totalAbbr(item))}</td>
                         <td>${escapeHtml(item.qty - totalAbbr(item))}</td>
@@ -1566,18 +1907,9 @@
                         </button>
                     </div>
                     <div class="p-4 report-filters">
-                        <select class="filter-control" onchange="updateReportFilter('pr', this.value)">
-                            <option value="">All PR#</option>
-                            ${prOptions.map(pr => `<option value="${escapeHtml(pr)}" ${reportFilters.pr === pr ? 'selected' : ''}>${escapeHtml(pr)}</option>`).join('')}
-                        </select>
-                        <select class="filter-control" onchange="updateReportFilter('zone', this.value)">
-                            <option value="">All Zones</option>
-                            ${validZones.map(zone => `<option value="${escapeHtml(zone)}" ${reportFilters.zone === zone ? 'selected' : ''}>${escapeHtml(zone === 'Loading' ? 'Loading' : `Zone ${zone}`)}</option>`).join('')}
-                        </select>
-                        <select class="filter-control" onchange="updateReportFilter('status', this.value)">
-                            <option value="">All Status</option>
-                            ${['Open', 'Complete', 'Over-assigned'].map(status => `<option value="${escapeHtml(status)}" ${reportFilters.status === status ? 'selected' : ''}>${escapeHtml(status)}</option>`).join('')}
-                        </select>
+                        ${renderCustomFormDropdown('report-pr-filter', reportFilters.pr, [{ value: '', label: 'All PR#' }, ...prOptions.map(pr => ({ value: pr, label: pr }))], 'selectReportDropdown', 'All PR#', "'pr'")}
+                        ${renderCustomFormDropdown('report-zone-filter', reportFilters.zone, [{ value: '', label: 'All Zones' }, ...validZones.map(zone => ({ value: zone, label: zone === 'Loading' ? 'Loading' : `Zone ${zone}` }))], 'selectReportDropdown', 'All Zones', "'zone'")}
+                        ${renderCustomFormDropdown('report-status-filter', reportFilters.status, [{ value: '', label: 'All Status' }, ...['Open', 'Complete', 'Over-assigned'].map(status => ({ value: status, label: status }))], 'selectReportDropdown', 'All Status', "'status'")}
                         <button onclick="createRipple(event); reportFilters = { pr: '', zone: '', status: '' }; renderReport()" class="ripple-btn filter-control">Reset Filters</button>
                     </div>
                 </div>
@@ -1590,8 +1922,8 @@
                 <div class="data-panel">
                     <div class="data-table-wrap">
                         <table class="data-table">
-                            <thead><tr><th>ID</th><th>PR#</th><th>Date</th><th>Item</th><th>Qty</th><th>Assigned</th><th>Remain</th><th>Status</th></tr></thead>
-                            <tbody>${rowHtml || '<tr><td colspan="8">No report data for these filters.</td></tr>'}</tbody>
+                            <thead><tr><th>ID</th><th>PR#</th><th>Date</th><th>Item</th><th>Part</th><th>Qty</th><th>Assigned</th><th>Remain</th><th>Status</th></tr></thead>
+                            <tbody>${rowHtml || '<tr><td colspan="9">No report data for these filters.</td></tr>'}</tbody>
                         </table>
                     </div>
                 </div>
@@ -1602,32 +1934,60 @@
             const container = document.getElementById('view-items');
             if (!container) return;
 
-            const rows = getItemRows();
-            const rowHtml = rows.map(row => `
+            const stockRows = getItemRows();
+            const itemRows = masterItems.map(item => {
+                const stock = stockRows.find(row => row.item.toLowerCase() === item.name.toLowerCase());
+                return `
                 <tr>
-                    <td>${escapeHtml(row.item)}</td>
-                    <td>${escapeHtml(row.qty)}</td>
-                    <td>${escapeHtml(row.assigned)}</td>
-                    <td>${escapeHtml(row.remaining)}</td>
-                    <td>${escapeHtml(row.prs || '-')}</td>
-                    <td>${escapeHtml(row.fngs || '-')}</td>
-                    <td>${statusPill(row.status)}</td>
+                    <td>${escapeHtml(item.name)}</td>
+                    <td>${escapeHtml(item.sku)}</td>
+                    <td>${escapeHtml(item.unit)}</td>
+                    <td>${escapeHtml(item.category)}</td>
+                    <td>${escapeHtml(item.itemType)}</td>
+                    <td>${escapeHtml(item.partsPerSet > 1 ? `${item.partsPerSet} parts` : '-')}</td>
+                    <td>${escapeHtml(stock ? stock.requested : 0)}</td>
+                    <td>${escapeHtml(stock ? stock.received : 0)}</td>
+                    <td>${escapeHtml(stock ? stock.remaining : 0)}</td>
+                    <td>${statusPill(stock ? stock.status : 'Open')}</td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
 
             container.innerHTML = `
-                ${renderPageHeader('Item List', 'Track each item across received, assigned, and remaining quantities')}
+                ${renderPageHeader('Item List', 'Create master items before adding them to purchase requests')}
                 <div class="data-panel">
                     <div class="panel-header">
                         <div>
-                            <div class="panel-title">Items</div>
-                            <div class="panel-subtitle">${rows.length} unique item${rows.length === 1 ? '' : 's'}</div>
+                            <div class="panel-title">Create Item</div>
+                            <div class="panel-subtitle">Item Master is the first step in the workflow</div>
+                        </div>
+                    </div>
+                    <div class="p-4 report-filters">
+                        <input id="item-name-input" class="filter-control" placeholder="Item name">
+                        <input id="item-sku-input" class="filter-control" placeholder="SKU / item code">
+                        <input id="item-unit-input" class="filter-control" value="pcs" placeholder="Unit">
+                        <input id="item-category-input" class="filter-control" placeholder="Category">
+                        ${renderCustomFormDropdown('item-type-input', 'Single', [{ value: 'Single', label: 'Single item' }, { value: 'Set', label: 'Set item' }], 'selectItemTypeDropdown', 'Single item')}
+                        <input id="item-parts-input" type="number" min="1" class="filter-control" value="1" placeholder="Parts per set" disabled>
+                    </div>
+                    <div class="px-4 pb-4">
+                        <button onclick="createRipple(event); createMasterItem()" class="ripple-btn new-transaction-btn toolbar-new-btn">
+                            <span class="plus-sign">+</span>
+                            <span>Create Item</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Item Master</div>
+                            <div class="panel-subtitle">${masterItems.length} item${masterItems.length === 1 ? '' : 's'} available for PR creation</div>
                         </div>
                     </div>
                     <div class="data-table-wrap">
                         <table class="data-table">
-                            <thead><tr><th>Item</th><th>Received</th><th>Assigned</th><th>Remaining</th><th>PR#</th><th>FNG</th><th>Status</th></tr></thead>
-                            <tbody>${rowHtml || '<tr><td colspan="7">No items yet.</td></tr>'}</tbody>
+                            <thead><tr><th>Item</th><th>SKU</th><th>Unit</th><th>Category</th><th>Type</th><th>Parts</th><th>PR Sets</th><th>Received Sets</th><th>Remaining Sets</th><th>Status</th></tr></thead>
+                            <tbody>${itemRows || '<tr><td colspan="10">No items yet.</td></tr>'}</tbody>
                         </table>
                     </div>
                 </div>
@@ -1643,7 +2003,8 @@
                 <tr>
                     <td>${escapeHtml(row.pr)}</td>
                     <td>${escapeHtml(row.items)}</td>
-                    <td>${escapeHtml(row.qty)}</td>
+                    <td>${escapeHtml(row.requested)}</td>
+                    <td>${escapeHtml(row.received)}</td>
                     <td>${escapeHtml(row.assigned)}</td>
                     <td>${escapeHtml(row.remaining)}</td>
                     <td>${escapeHtml(row.createdAt)}</td>
@@ -1652,18 +2013,32 @@
             `).join('');
 
             container.innerHTML = `
-                ${renderPageHeader('PR List', 'Group received stock by purchase request number')}
+                ${renderPageHeader('PR List', 'Create purchase requests from Item List before receiving stock')}
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Create PR</div>
+                            <div class="panel-subtitle">Select a master item and requested quantity</div>
+                        </div>
+                    </div>
+                    <div class="p-4 report-filters">
+                        <input id="pr-id-input" class="filter-control" placeholder="PR number">
+                        ${renderCustomFormDropdown('pr-item-select', '', [{ value: '', label: 'Select item' }, ...masterItems.map(item => ({ value: item.id, label: `${item.name} (${item.sku})` }))], 'selectFormDropdown', 'Select item')}
+                        <input id="pr-qty-input" type="number" class="filter-control" placeholder="Requested qty">
+                        <button onclick="createRipple(event); createPurchaseRequest()" class="ripple-btn filter-control">Create PR</button>
+                    </div>
+                </div>
                 <div class="data-panel">
                     <div class="panel-header">
                         <div>
                             <div class="panel-title">Purchase Requests</div>
-                            <div class="panel-subtitle">${rows.length} PR record${rows.length === 1 ? '' : 's'}</div>
+                            <div class="panel-subtitle">${purchaseRequests.length} PR record${purchaseRequests.length === 1 ? '' : 's'} available for receiving</div>
                         </div>
                     </div>
                     <div class="data-table-wrap">
                         <table class="data-table">
-                            <thead><tr><th>PR#</th><th>Items</th><th>Received</th><th>Assigned</th><th>Remaining</th><th>First Date</th><th>Status</th></tr></thead>
-                            <tbody>${rowHtml || '<tr><td colspan="7">No PR records yet.</td></tr>'}</tbody>
+                            <thead><tr><th>PR#</th><th>Items</th><th>Requested</th><th>Received</th><th>Assigned</th><th>Remaining</th><th>Date</th><th>Status</th></tr></thead>
+                            <tbody>${rowHtml || '<tr><td colspan="8">No PR records yet.</td></tr>'}</tbody>
                         </table>
                     </div>
                 </div>
@@ -1683,13 +2058,14 @@
                 const matchesId = item.id.toLowerCase().includes(searchQuery);
                 const matchesPr = (item.pr || '').toLowerCase().includes(searchQuery);
                 const matchesItemName = item.item.toLowerCase().includes(searchQuery);
+                const matchesPart = (item.partLabel || '').toLowerCase().includes(searchQuery) || `part ${item.partLabel || ''}`.toLowerCase().includes(searchQuery);
                 const matchesDate = item.createdAt.toLowerCase().includes(searchQuery);
                 const matchesLocation = item.locations.some(loc =>
                     loc.pallet.toLowerCase().includes(searchQuery) ||
                     loc.zone.toLowerCase().includes(searchQuery) ||
                     (loc.createdAt && loc.createdAt.toLowerCase().includes(searchQuery))
                 );
-                return matchesId || matchesPr || matchesItemName || matchesDate || matchesLocation;
+                return matchesId || matchesPr || matchesItemName || matchesPart || matchesDate || matchesLocation;
             });
         }
 
@@ -1716,6 +2092,7 @@
                 'PR#',
                 'Created At',
                 'Item',
+                'Part',
                 'Item Qty',
                 'Assigned Qty',
                 'Remaining Qty',
@@ -1739,6 +2116,7 @@
                         item.pr || '',
                         item.createdAt,
                         item.item,
+                        item.partLabel || '',
                         item.qty,
                         assignedQty,
                         remainingQty,
@@ -1854,6 +2232,134 @@
         }
 
         // Custom Dropdown Logic
+        function jsString(value) {
+            return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, ' ');
+        }
+
+        function renderCustomFormDropdown(id, selectedValue, options, handlerName, placeholder = 'Select', leadingArgs = '') {
+            const selected = options.find(option => option.value === selectedValue);
+            const label = selected ? selected.label : placeholder;
+            const optionHtml = options.map(option => {
+                const isSelected = option.value === selectedValue;
+                const args = leadingArgs
+                    ? `${leadingArgs}, '${jsString(id)}', '${jsString(option.value)}', '${jsString(option.label)}', event`
+                    : `'${jsString(id)}', '${jsString(option.value)}', '${jsString(option.label)}', event`;
+                return `
+                    <button type="button" onclick="${handlerName}(${args})" class="w-full text-left px-3.5 py-2.5 text-xs sm:text-sm ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-800/80 hover:text-slate-100'} flex items-center justify-between transition-colors rounded-lg">
+                        <span>${escapeHtml(option.label)}</span>
+                        ${isSelected ? '<span class="text-blue-400 text-xs font-bold">✓</span>' : ''}
+                    </button>
+                `;
+            }).join('');
+
+            return `
+                <div class="form-dropdown" onclick="event.stopPropagation()">
+                    <input type="hidden" id="${escapeHtml(id)}" value="${escapeHtml(selectedValue || '')}">
+                    <div id="custom-dropdown-trigger-${escapeHtml(id)}" onclick="toggleFormDropdown('${jsString(id)}', event)" class="form-dropdown-trigger">
+                        <span id="custom-dropdown-label-${escapeHtml(id)}" class="form-dropdown-label">${escapeHtml(label)}</span>
+                        <span id="custom-dropdown-arrow-${escapeHtml(id)}" class="form-dropdown-arrow">⌄</span>
+                    </div>
+                    <div id="custom-dropdown-menu-${escapeHtml(id)}" class="custom-dropdown-menu absolute left-0 right-0 top-full mt-1.5 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 hidden opacity-0 scale-95 overflow-hidden">
+                        <div class="p-1 space-y-0.5">
+                            ${optionHtml || '<div class="px-3.5 py-2.5 text-xs text-slate-500">No options</div>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleFormDropdown(id, event) {
+            event.stopPropagation();
+            const menu = document.getElementById(`custom-dropdown-menu-${id}`);
+            const arrow = document.getElementById(`custom-dropdown-arrow-${id}`);
+            const trigger = document.getElementById(`custom-dropdown-trigger-${id}`);
+            const shell = trigger?.closest('.data-panel, .custom-modal-content, .stock-card');
+            if (!menu) return;
+
+            document.querySelectorAll('[id^="custom-dropdown-menu-"]').forEach(openMenu => {
+                if (openMenu.id !== `custom-dropdown-menu-${id}`) {
+                    openMenu.classList.add('hidden', 'opacity-0', 'scale-95');
+                }
+            });
+            document.querySelectorAll('[id^="custom-dropdown-arrow-"]').forEach(openArrow => {
+                if (openArrow.id !== `custom-dropdown-arrow-${id}`) {
+                    openArrow.classList.remove('rotate-180', 'text-blue-400');
+                }
+            });
+            document.querySelectorAll('[id^="custom-dropdown-trigger-"]').forEach(openTrigger => {
+                if (openTrigger.id !== `custom-dropdown-trigger-${id}`) {
+                    openTrigger.classList.remove('active');
+                }
+            });
+            document.querySelectorAll('.dropdown-open').forEach(openShell => {
+                if (openShell !== shell) {
+                    openShell.classList.remove('dropdown-open');
+                }
+            });
+
+            const isHidden = menu.classList.contains('hidden');
+            if (isHidden) {
+                shell?.classList.add('dropdown-open');
+                menu.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    menu.classList.remove('opacity-0', 'scale-95');
+                    arrow?.classList.add('rotate-180', 'text-blue-400');
+                    trigger?.classList.add('active');
+                });
+            } else {
+                closeCustomDropdown(id);
+            }
+        }
+
+        function closeCustomDropdown(id) {
+            const menu = document.getElementById(`custom-dropdown-menu-${id}`);
+            const arrow = document.getElementById(`custom-dropdown-arrow-${id}`);
+            const trigger = document.getElementById(`custom-dropdown-trigger-${id}`);
+            const shell = trigger?.closest('.data-panel, .custom-modal-content, .stock-card');
+            if (menu) {
+                menu.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => menu.classList.add('hidden'), 200);
+            }
+            arrow?.classList.remove('rotate-180', 'text-blue-400');
+            trigger?.classList.remove('active');
+            shell?.classList.remove('dropdown-open');
+        }
+
+        function selectFormDropdown(id, value, label, event) {
+            event.stopPropagation();
+            const input = document.getElementById(id);
+            const labelEl = document.getElementById(`custom-dropdown-label-${id}`);
+            if (input) input.value = value;
+            if (labelEl) labelEl.innerText = label;
+            closeCustomDropdown(id);
+        }
+
+        function selectReportDropdown(field, id, value, label, event) {
+            selectFormDropdown(id, value, label, event);
+            reportFilters[field] = value;
+            renderReport();
+        }
+
+        function selectItemTypeDropdown(id, value, label, event) {
+            selectFormDropdown(id, value, label, event);
+            syncItemTypeFields();
+        }
+
+        function selectNewPrDropdown(id, value, label, event) {
+            selectFormDropdown(id, value, label, event);
+            handleNewPrChange();
+        }
+
+        function selectModalItemDropdown(index, id, value, label, event) {
+            selectFormDropdown(id, value, label, event);
+            handleModalItemChange(index, value);
+        }
+
+        function selectModalPartDropdown(index, id, value, label, event) {
+            selectFormDropdown(id, value, label, event);
+            updateModalRow(index, 'partLabel', value);
+        }
+
         function toggleCustomDropdown(index, event) {
             event.stopPropagation();
             const menu = document.getElementById(`custom-dropdown-menu-${index}`);
@@ -1937,8 +2443,11 @@
             document.querySelectorAll('[id^="custom-dropdown-arrow-"]').forEach(arrow => {
                 arrow.classList.remove('rotate-180', 'text-blue-400');
             });
-            document.querySelectorAll('.stock-card.dropdown-open').forEach(card => {
-                card.classList.remove('dropdown-open');
+            document.querySelectorAll('[id^="custom-dropdown-trigger-"]').forEach(trigger => {
+                trigger.classList.remove('active');
+            });
+            document.querySelectorAll('.dropdown-open').forEach(shell => {
+                shell.classList.remove('dropdown-open');
             });
         }
 
@@ -2003,9 +2512,9 @@
 
                     <div class="pr-cell" title="${item.pr || ''}">${item.pr || '—'}</div>
 
-                    <div class="item-cell" title="${item.item}">
+                    <div class="item-cell" title="${item.item}${item.partLabel ? ` - Part ${item.partLabel}` : ''}">
                         <span class="item-title">${item.item}</span>
-                        <span class="item-qty">${item.qty} pcs</span>
+                        <span class="item-qty">${item.partLabel ? `Part ${item.partLabel} - ` : ''}${item.qty} pcs</span>
                     </div>
 
                     <div class="assigned-block">
@@ -2082,7 +2591,7 @@
                                 </div>
 
                                 <!-- Dropdown Menu Popover -->
-                                <div id="custom-dropdown-menu-${index}" class="custom-dropdown-menu absolute left-0 right-0 top-full mt-1.5 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-40 hidden opacity-0 scale-95 overflow-hidden">
+                                <div id="custom-dropdown-menu-${index}" class="custom-dropdown-menu absolute left-0 right-0 top-full mt-1.5 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 hidden opacity-0 scale-95 overflow-hidden">
                                     <div class="p-1 space-y-0.5">
                                         ${validZones.map(zone => {
                                             const isSelected = currentZone === zone;
@@ -2294,9 +2803,15 @@
         }
 
         function openNewModal() {
-            modalRows = [{ item: '', qty: '' }];
+            modalRows = [{ itemId: '', qty: '' }];
             document.getElementById('new-id-input').value = 'FNG-' + (inventory.length + 1);
-            document.getElementById('new-pr-input').value = 'PR-' + Math.floor(1000 + Math.random() * 9000);
+            renderNewPrOptions();
+            const selectedPr = document.getElementById('new-pr-input').value;
+            const prItems = getPrItemsForReceiving(selectedPr);
+            if (prItems.length > 0) {
+                modalRows[0].itemId = prItems[0].itemId;
+                modalRows[0].partLabel = (Number.parseInt(prItems[0].partsPerSet || 1, 10) || 1) > 1 ? `1/${prItems[0].partsPerSet}` : '';
+            }
             renderModalItemRows();
 
             const modal = document.getElementById('new-modal');
@@ -2320,7 +2835,14 @@
         }
 
         function addModalItemRow() {
-            modalRows.push({ item: '', qty: '' });
+            const selectedPr = document.getElementById('new-pr-input').value;
+            const prItems = getPrItemsForReceiving(selectedPr);
+            const firstItem = prItems[0];
+            modalRows.push({
+                itemId: firstItem ? firstItem.itemId : '',
+                partLabel: firstItem && (Number.parseInt(firstItem.partsPerSet || 1, 10) || 1) > 1 ? `1/${firstItem.partsPerSet}` : '',
+                qty: ''
+            });
             renderModalItemRows();
         }
 
@@ -2329,7 +2851,7 @@
                 showAlertModal("You must have at least one item.");
                 return;
             }
-            const itemName = modalRows[index].item.trim() || `Item #${index + 1}`;
+            const itemName = getReceivingItemName(modalRows[index].itemId) || `Item #${index + 1}`;
             showConfirmDialog(
                 "Remove Item",
                 `Are you sure you want to remove "${itemName}" from this transaction?`,
@@ -2344,24 +2866,98 @@
             modalRows[index][field] = value;
         }
 
+        function renderNewPrOptions() {
+            const dropdown = document.getElementById('new-pr-dropdown');
+            if (!dropdown) return;
+            const options = purchaseRequests.map(pr => ({
+                value: pr.id,
+                label: `${pr.id} - ${pr.items.length} item${pr.items.length === 1 ? '' : 's'}`
+            }));
+            dropdown.innerHTML = renderCustomFormDropdown('new-pr-input', options[0]?.value || '', options, 'selectNewPrDropdown', 'Select PR');
+        }
+
+        function handleNewPrChange() {
+            const selectedPr = document.getElementById('new-pr-input').value;
+            const prItems = getPrItemsForReceiving(selectedPr);
+            const firstItem = prItems[0];
+            modalRows = [{
+                itemId: firstItem ? firstItem.itemId : '',
+                partLabel: firstItem && (Number.parseInt(firstItem.partsPerSet || 1, 10) || 1) > 1 ? `1/${firstItem.partsPerSet}` : '',
+                qty: ''
+            }];
+            renderModalItemRows();
+        }
+
+        function getPrItemsForReceiving(prId) {
+            const pr = purchaseRequests.find(request => request.id === prId);
+            return pr ? pr.items : [];
+        }
+
+        function getReceivingItemName(itemId) {
+            const masterItem = masterItems.find(item => item.id === itemId);
+            if (masterItem) return masterItem.name;
+            for (const pr of purchaseRequests) {
+                const line = pr.items.find(item => item.itemId === itemId);
+                if (line) return line.itemName;
+            }
+            return '';
+        }
+
+        function getReceivingLine(prId, itemId) {
+            const pr = purchaseRequests.find(request => request.id === prId);
+            return pr ? pr.items.find(item => item.itemId === itemId) : null;
+        }
+
+        function handleModalItemChange(index, itemId) {
+            updateModalRow(index, 'itemId', itemId);
+            const selectedPr = document.getElementById('new-pr-input').value;
+            const line = getReceivingLine(selectedPr, itemId);
+            const partsPerSet = Number.parseInt(line?.partsPerSet || 1, 10) || 1;
+            modalRows[index].partLabel = partsPerSet > 1 ? `1/${partsPerSet}` : '';
+            renderModalItemRows();
+        }
+
         function renderModalItemRows() {
             const container = document.getElementById('modal-items-container');
-            container.innerHTML = modalRows.map((row, idx) => `
+            const selectedPr = document.getElementById('new-pr-input').value;
+            const prItems = getPrItemsForReceiving(selectedPr);
+
+            if (purchaseRequests.length === 0) {
+                container.innerHTML = '<div class="bg-slate-950/50 border border-slate-800 p-3 rounded-xl text-xs text-slate-400">Create a PR in PR List before receiving stock.</div>';
+                return;
+            }
+
+            if (prItems.length === 0) {
+                container.innerHTML = '<div class="bg-slate-950/50 border border-slate-800 p-3 rounded-xl text-xs text-slate-400">This PR has no items. Add items in PR List first.</div>';
+                return;
+            }
+
+            container.innerHTML = modalRows.map((row, idx) => {
+                const selectedLine = getReceivingLine(selectedPr, row.itemId) || prItems[0];
+                const partsPerSet = Number.parseInt(selectedLine?.partsPerSet || 1, 10) || 1;
+
+                return `
                 <div class="bg-slate-950/50 border border-slate-800 p-3 rounded-xl space-y-2.5 relative group">
                     <div class="flex items-center justify-between">
                         <span class="text-[11px] font-semibold text-slate-400">Item #${idx + 1}</span>
                         <button onclick="createRipple(event); confirmRemoveModalItem(${idx})" class="ripple-btn text-red-400 hover:text-red-300 text-xs">Remove Item</button>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                        <div class="sm:col-span-8">
-                            <input type="text" value="${row.item}" oninput="updateModalRow(${idx}, 'item', this.value)" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-all" placeholder="Item Name (e.g. Aluminum frame)">
+                        <div class="sm:col-span-6">
+                            ${renderCustomFormDropdown(`modal-item-${idx}`, row.itemId, prItems.map(item => ({ value: item.itemId, label: `${item.itemName} - PR qty ${item.qty}` })), 'selectModalItemDropdown', 'Select item', String(idx))}
                         </div>
-                        <div class="sm:col-span-4">
+                        <div class="sm:col-span-3">
+                            ${partsPerSet > 1 ? `
+                                ${renderCustomFormDropdown(`modal-part-${idx}`, row.partLabel || `1/${partsPerSet}`, getPartLabels(partsPerSet).map(part => ({ value: part, label: `Part ${part}` })), 'selectModalPartDropdown', 'Select part', String(idx))}
+                            ` : '<div class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-500 text-xs sm:text-sm">Single</div>'}
+                        </div>
+                        <div class="sm:col-span-3">
                             <input type="number" value="${row.qty}" oninput="updateModalRow(${idx}, 'qty', this.value)" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-all" placeholder="Qty">
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function createNewTransactions() {
@@ -2373,10 +2969,15 @@
                 return;
             }
 
-            const validRows = modalRows.filter(r => r.item.trim() && !isNaN(parseInt(r.qty)) && parseInt(r.qty) > 0);
+            if (!pr) {
+                showAlertModal("Please create and select a PR before receiving stock.", "PR Required");
+                return;
+            }
+
+            const validRows = modalRows.filter(r => r.itemId && !isNaN(parseInt(r.qty)) && parseInt(r.qty) > 0);
 
             if (validRows.length === 0) {
-                showAlertModal("Please fill out at least one valid item with name and quantity.");
+                showAlertModal("Please select at least one PR item with a valid received quantity.");
                 return;
             }
 
@@ -2385,11 +2986,17 @@
             const creationTimestamp = getCurrentFormattedDateTime();
 
             validRows.reverse().forEach(row => {
+                const selectedLine = getReceivingLine(pr, row.itemId);
+                const partsPerSet = Number.parseInt(selectedLine?.partsPerSet || 1, 10) || 1;
+                const partLabel = partsPerSet > 1 ? (row.partLabel || `1/${partsPerSet}`) : '';
                 inventory.unshift({
                     id,
                     pr,
                     createdAt: creationTimestamp,
-                    item: row.item.trim(),
+                    itemId: row.itemId,
+                    item: getReceivingItemName(row.itemId),
+                    partLabel,
+                    partsPerSet,
                     qty: parseInt(row.qty),
                     isExpanded: false,
                     locations: [],
