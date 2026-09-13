@@ -1,69 +1,1397 @@
-<!doctype html>
-<html lang="en" class="dark">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Warehouse Receiving</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>window.tailwind=window.tailwind||{};tailwind.config={theme:{extend:{colors:{ink:'#080b10',panel:'#10151d',line:'#252c37',accent:'#38d996'}}}}</script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <style>
-    *{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}.hidden{display:none!important}body{background:#080b10;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
-    button,input,select{transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease,color .18s ease,opacity .18s ease}button{min-height:44px}
-    input,select{outline:0}input:focus,select:focus{border-color:#38d996!important;box-shadow:0 0 0 3px #38d99620}
-    .slide{height:0;overflow:hidden;opacity:0;will-change:height,opacity;transition:height .34s cubic-bezier(.16,1,.3,1),opacity .22s ease}.slide.open{opacity:1}
-    .chev{transition:transform .24s cubic-bezier(.16,1,.3,1)}.expanded .chev{transform:rotate(180deg)}
-    .modal{opacity:0;visibility:hidden;transition:opacity .18s ease,visibility 0s linear .18s}.modal.show{opacity:1;visibility:visible;transition-delay:0s}
-    .card{transform:translateY(10px) scale(.985);will-change:transform;transition:transform .26s cubic-bezier(.16,1,.3,1)}.modal.show .card{transform:none}
-    .toast{opacity:0;transform:translate(-50%,12px);transition:opacity .18s ease,transform .22s cubic-bezier(.16,1,.3,1)}.toast.show{opacity:1;transform:translate(-50%,0)}
-    .photo-thumb{height:72px;width:72px;border-radius:8px;object-fit:cover}.small-thumb{height:44px;width:44px;border-radius:8px;object-fit:cover}
-    .file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}.tap-row button{min-height:38px}
-    @media(max-width:639px){.tap-row{grid-template-columns:1fr!important}.photo-thumb{height:88px;width:88px}.doc-thumb{height:44px!important;width:44px!important}.mobile-stack{grid-template-columns:1fr!important}.modal-panel{max-height:92vh;width:100%;overflow:auto}.item-name{overflow-wrap:anywhere}}
-    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stock Received - Multi-Location Fast Entry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+        
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #0b0f19;
+            color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Seamless Fluid CSS Accordion Animation with GPU Acceleration */
+        .accordion-wrapper {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+            will-change: grid-template-rows, opacity;
+        }
+        .accordion-wrapper.expanded {
+            grid-template-rows: 1fr;
+            opacity: 1;
+        }
+        .accordion-inner {
+            overflow: hidden;
+            transform: translateZ(0);
+        }
+
+        /* Modal Smooth Scale & Fade */
+        .custom-modal {
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .custom-modal-content {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-in-out;
+            transform: scale(0.92);
+            opacity: 0;
+        }
+        .custom-modal.active .custom-modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        /* Click Ripple Transition Feedback */
+        .ripple-btn {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .ripple-btn:active {
+            transform: scale(0.96);
+        }
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0);
+            animation: rippleEffect 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            pointer-events: none;
+        }
+        @keyframes rippleEffect {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Prevent iOS zoom on focus */
+        input, select, textarea {
+            font-size: 16px !important;
+        }
+
+        /* Subtle Glow Animation */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.12); }
+            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.28); }
+        }
+        .active-glow {
+            animation: pulseGlow 3s infinite;
+        }
+
+        /* Stock Header & Item Row CSS Grid Layout */
+        .stock-header,
+        .stock-row {
+            display: grid;
+            grid-template-columns: 85px 75px minmax(0, 1fr) 45px 75px;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .item-name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .assigned-cell {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        /* Strict Grid Alignment for Pallet Sub-rows */
+        .assignment-header,
+        .assignment-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 72px 42px 72px;
+            gap: 6px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .assignment-row {
+            padding: 10px 10px;
+        }
+
+        .remove-btn {
+            width: 72px;
+            max-width: 100%;
+            padding: 6px 4px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        /* Custom Dropdown Animation & Styles */
+        .custom-dropdown-menu {
+            transform-origin: top;
+            transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+
+        /* ===== Responsive redesign: iPhone 14 Pro + laptop ===== */
+        :root {
+            --page-bg: #08101f;
+            --panel: #101b2e;
+            --panel-2: #152238;
+            --border: #243652;
+            --muted: #7f93b1;
+            --text: #edf3ff;
+            --cyan: #24b7ff;
+            --green: #2de1ae;
+            --yellow: #ffc62a;
+            --blue: #1677ff;
+        }
+
+        html { background: var(--page-bg); }
+        body {
+            margin: 0;
+            background:
+                radial-gradient(circle at 72% 20%, rgba(29, 78, 216, .08), transparent 35%),
+                linear-gradient(180deg, #091222 0%, #07101e 100%);
+            min-width: 320px;
+        }
+
+        .app-shell {
+            width: min(1180px, calc(100% - 48px));
+            padding: 26px 0 42px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+        }
+        .page-heading h1 {
+            margin: 0;
+            font-size: clamp(28px, 3vw, 42px);
+            line-height: 1.05;
+            font-weight: 700;
+            letter-spacing: -0.035em;
+            color: var(--text);
+        }
+        .page-heading p {
+            margin: 10px 0 0;
+            color: #9bacC6;
+            font-size: 16px;
+            letter-spacing: -0.02em;
+        }
+        .new-transaction-btn {
+            min-height: 58px;
+            padding: 0 24px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #2180ff 0%, #1369e8 100%);
+            color: white;
+            border: 1px solid rgba(93, 162, 255, .45);
+            box-shadow: 0 12px 24px rgba(0, 91, 255, .2), inset 0 1px rgba(255,255,255,.08);
+            font-size: 16px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .plus-sign { font-size: 29px; line-height: 1; font-weight: 300; }
+
+        .action-toolbar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid #263853;
+            border-radius: 18px;
+            background: rgba(12, 20, 34, .78);
+            box-shadow: inset 0 1px rgba(255,255,255,.02);
+        }
+        .toolbar-search {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        .toolbar-new-btn {
+            flex: 0 0 auto;
+            min-height: 48px;
+            padding: 0 18px;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #2de1ae 0%, #22c997 100%);
+            border-color: rgba(89, 241, 193, .35);
+            color: #061811;
+            box-shadow: 0 10px 20px rgba(45, 225, 174, .12), inset 0 1px rgba(255,255,255,.18);
+            font-size: 14px;
+        }
+        .toolbar-new-btn:hover { filter: brightness(1.05); }
+        .toolbar-new-btn .plus-sign { font-size: 22px; font-weight: 500; }
+
+        .search-wrap { position: relative; }
+        .search-input {
+            width: 100%;
+            height: 64px;
+            padding: 0 22px 0 64px;
+            border-radius: 18px;
+            border: 1px solid #2b405f;
+            background: linear-gradient(180deg, rgba(18,30,51,.96), rgba(13,24,42,.96));
+            color: var(--text);
+            outline: none;
+            box-shadow: inset 0 1px rgba(255,255,255,.025);
+            transition: border-color .2s, box-shadow .2s;
+            letter-spacing: -0.015em;
+        }
+        .search-input::placeholder { color: #6e82a1; }
+        .search-input:focus {
+            border-color: #2a83ff;
+            box-shadow: 0 0 0 3px rgba(42,131,255,.12);
+        }
+        .search-icon {
+            position: absolute;
+            left: 22px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 27px;
+            height: 27px;
+            stroke: var(--cyan);
+            stroke-width: 2;
+            fill: none;
+            z-index: 2;
+        }
+        .action-toolbar .search-input {
+            height: 48px;
+            border-radius: 12px;
+            padding-left: 46px;
+            background: #0b1423;
+        }
+        .action-toolbar .search-icon {
+            left: 15px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .stock-header {
+            display: grid;
+            grid-template-columns: 235px 165px minmax(280px, 1fr) 250px;
+            align-items: center;
+            padding: 0 22px;
+            color: #8397b7;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: .06em;
+        }
+        #inventory-list { display: flex; flex-direction: column; gap: 14px; }
+
+        .stock-card {
+            background: linear-gradient(180deg, rgba(16,28,48,.97), rgba(13,24,42,.97));
+            border: 1px solid #263853;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 12px 24px rgba(0,0,0,.12), inset 0 1px rgba(255,255,255,.018);
+            transition: border-color .2s, transform .2s, box-shadow .2s;
+        }
+        .stock-card:hover { border-color: #334a6d; }
+        .stock-card.expanded-card {
+            border-color: rgba(46, 128, 255, .7);
+            box-shadow: 0 16px 34px rgba(0,0,0,.19), 0 0 0 1px rgba(22,119,255,.08);
+        }
+
+        .stock-row {
+            display: grid;
+            grid-template-columns: 235px 165px minmax(280px, 1fr) 250px 24px;
+            gap: 0;
+            align-items: center;
+            min-height: 108px;
+            padding: 12px 20px 12px 0;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+        }
+        .id-date-cell {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+        .accent-line {
+            width: 4px;
+            height: 68%;
+            min-height: 58px;
+            max-height: 72px;
+            border-radius: 999px;
+            background: var(--green);
+            box-shadow: 0 0 14px rgba(45,225,174,.15);
+            margin-right: 20px;
+            flex: 0 0 auto;
+        }
+        .id-date-content { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
+        .transaction-id {
+            color: var(--green);
+            font-size: 19px;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 3px;
+        }
+        .date-line {
+            color: #8da0bd;
+            font-size: 13px;
+            line-height: 1.25;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            white-space: nowrap;
+        }
+        .date-line svg {
+            width: 17px;
+            height: 17px;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            fill: none;
+            flex: 0 0 auto;
+        }
+        .pr-cell {
+            color: var(--cyan);
+            font-size: 17px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 16px;
+        }
+        .item-cell {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding-right: 18px;
+        }
+        .item-title {
+            color: #f6f8fd;
+            font-size: 17px;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .item-qty { color: #b4c0d4; font-size: 15px; }
+        .assigned-block { min-width: 0; padding-right: 20px; }
+        .assigned-topline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+        .assigned-value { color: var(--yellow); font-size: 18px; font-weight: 700; white-space: nowrap; }
+        .assigned-value.complete { color: var(--green); }
+        .assigned-percent { color: #9cadc5; font-size: 15px; font-weight: 600; white-space: nowrap; }
+        .assigned-progress {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: #263751;
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.18);
+        }
+        .assigned-progress span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #ffc126, #ffd248);
+            min-width: 0;
+            transition: width .3s ease;
+        }
+        .assigned-value.complete + .assigned-percent { color: var(--green); }
+        .row-chevron {
+            font-family: Arial, sans-serif;
+            color: #a9b8cc;
+            font-size: 38px;
+            font-weight: 300;
+            line-height: 1;
+            transform: translateY(-1px);
+            transition: transform .25s ease, color .2s ease;
+        }
+        .row-chevron.expanded { transform: rotate(90deg); color: #58a1ff; }
+
+        .accordion-inner.card-content-target { padding: 0 20px 20px; }
+        .accordion-inner.card-content-target > div { margin-top: 0 !important; padding-top: 18px !important; }
+
+        .list-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            color: #7085a4;
+            font-size: 12px;
+            padding: 4px 2px 0;
+        }
+        .fast-entry-note { text-align: right; }
+
+        /* Compact desktop rows: optimized for short warehouse item codes */
+        @media (min-width: 1001px) {
+            #inventory-list { gap: 12px; }
+            .stock-row {
+                min-height: 108px;
+                padding-top: 12px;
+                padding-bottom: 12px;
+            }
+            .accent-line { min-height: 58px; max-height: 70px; }
+            .item-cell { gap: 3px; }
+            .assigned-topline { margin-bottom: 6px; }
+            .assigned-progress { height: 10px; }
+        }
+
+        /* Laptop / medium screen tuning */
+        @media (max-width: 1000px) and (min-width: 641px) {
+            .app-shell { width: min(940px, calc(100% - 34px)); }
+            .stock-header { grid-template-columns: 200px 145px minmax(220px, 1fr) 210px; }
+            .stock-row { grid-template-columns: 200px 145px minmax(220px, 1fr) 210px 22px; min-height: 104px; padding-top: 11px; padding-bottom: 11px; }
+            .transaction-id { font-size: 19px; }
+            .pr-cell, .item-title { font-size: 16px; }
+        }
+
+        /* iPhone / mobile layout */
+        @media (max-width: 640px) {
+            body {
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+            }
+            .app-shell {
+                width: calc(100% - 24px);
+                padding-top: max(16px, env(safe-area-inset-top));
+                gap: 14px;
+            }
+            .page-header { align-items: center; gap: 12px; }
+            .page-heading h1 { font-size: 22px; }
+            .page-heading p { display: none; }
+            .action-toolbar {
+                gap: 7px;
+                padding: 8px;
+                border-radius: 15px;
+            }
+            .action-toolbar .search-input {
+                height: 44px;
+                border-radius: 11px;
+                padding-left: 38px;
+                padding-right: 8px;
+                font-size: 16px !important;
+            }
+            .action-toolbar .search-icon {
+                left: 12px;
+                width: 18px;
+                height: 18px;
+            }
+            .toolbar-new-btn {
+                min-height: 44px;
+                padding: 0 11px;
+                border-radius: 11px;
+                font-size: 12px;
+                gap: 4px;
+                white-space: nowrap;
+            }
+            .toolbar-new-btn .plus-sign { font-size: 18px; }
+
+            .stock-header { display: none; }
+            #inventory-list { gap: 11px; }
+            .stock-card { border-radius: 18px; }
+            .stock-row {
+                grid-template-columns: minmax(0, 1fr) 112px 16px;
+                grid-template-areas:
+                    "identity assigned chevron"
+                    "pr       assigned chevron"
+                    "item     item     item";
+                min-height: 0;
+                padding: 15px 14px 14px 0;
+                row-gap: 8px;
+            }
+            .id-date-cell { grid-area: identity; align-items: stretch; }
+            .accent-line {
+                width: 3px;
+                height: auto;
+                min-height: 64px;
+                margin-right: 13px;
+            }
+            .transaction-id { font-size: 16px; margin-bottom: 2px; }
+            .date-line { font-size: 10px; gap: 5px; }
+            .date-line svg { width: 13px; height: 13px; }
+            .pr-cell {
+                grid-area: pr;
+                padding-left: 16px;
+                padding-right: 8px;
+                font-size: 13px;
+                align-self: start;
+            }
+            .item-cell {
+                grid-area: item;
+                padding: 11px 8px 0 16px;
+                border-top: 1px solid rgba(53,73,103,.48);
+                margin-top: 1px;
+                gap: 3px;
+            }
+            .item-title { font-size: 14px; }
+            .item-qty { font-size: 11px; }
+            .assigned-block {
+                grid-area: assigned;
+                padding-right: 8px;
+                align-self: center;
+            }
+            .assigned-topline { gap: 7px; margin-bottom: 7px; }
+            .assigned-value { font-size: 14px; }
+            .assigned-percent { font-size: 11px; }
+            .assigned-progress { height: 8px; }
+            .row-chevron {
+                grid-area: chevron;
+                align-self: center;
+                font-size: 28px;
+            }
+            .accordion-inner.card-content-target { padding: 0 11px 13px; }
+            .accordion-inner.card-content-target > div { padding-top: 13px !important; }
+
+            /* Keep existing expanded controls mobile friendly */
+            .assignment-header,
+            .assignment-row {
+                grid-template-columns: minmax(0, 1fr) 48px 38px 62px;
+                gap: 5px;
+            }
+            .assignment-row { padding: 9px 7px; }
+            .remove-btn { width: 62px; font-size: 10px; padding: 6px 2px; }
+            .list-footer { display: block; text-align: center; font-size: 10px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+            .fast-entry-note { display: none; }
+        }
+
+        @media (max-width: 370px) {
+            .app-shell { width: calc(100% - 18px); }
+            .action-toolbar { gap: 6px; padding: 7px; }
+            .toolbar-new-btn { padding: 0 9px; }
+            .new-fng-label { font-size: 11px; }
+            .stock-row { grid-template-columns: minmax(0, 1fr) 102px 14px; }
+            .pr-cell { font-size: 12px; }
+        }
+
+    </style>
 </head>
-<body class="min-h-screen bg-ink text-slate-200">
-<main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-  <header class="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><div class="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] text-accent"><i data-lucide="warehouse" class="h-4 w-4"></i>Receiving desk</div><h1 class="text-3xl font-bold text-white">Stock location assignment</h1><p class="mt-2 text-sm text-slate-400">Transactions with multiple items and shared location photos.</p></div><div class="rounded-xl border border-line bg-panel px-4 py-3 text-sm"><b class="text-white">Receiving active</b><div id="progress" class="mt-1 text-xs text-slate-500"></div></div></header>
-  <section class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4"><div class="rounded-2xl border border-line bg-panel p-4"><small class="text-slate-500">TRANSACTIONS</small><b id="kTx" class="mt-2 block text-2xl text-white"></b></div><div class="rounded-2xl border border-line bg-panel p-4"><small class="text-slate-500">ITEMS</small><b id="kItems" class="mt-2 block text-2xl text-white"></b></div><div class="rounded-2xl border border-line bg-panel p-4"><small class="text-slate-500">ASSIGNED</small><b id="kAssigned" class="mt-2 block text-2xl text-accent"></b></div><div class="rounded-2xl border border-line bg-panel p-4"><small class="text-slate-500">REMAINING</small><b id="kRemain" class="mt-2 block text-2xl text-amber-400"></b></div></section>
-  <section class="overflow-hidden rounded-2xl border border-line bg-panel"><div class="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:justify-between"><input id="search" class="h-11 rounded-lg border border-line bg-ink px-3 text-sm text-white" placeholder="Search FNG or item..."><div class="flex gap-2"><button id="deletedBtn" class="hidden h-11 items-center gap-2 rounded-lg border border-line px-3 text-sm"><i data-lucide="archive-restore" class="h-4 w-4"></i>Deleted <span id="deletedCount">0</span></button><button id="newBtn" class="flex h-11 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-bold text-ink"><i data-lucide="plus" class="h-4 w-4"></i>New FNG</button></div></div><div class="hidden grid-cols-[120px_1fr_80px_150px_25px] gap-3 border-b border-line px-5 py-3 text-xs font-bold tracking-wider text-slate-500 sm:grid"><span>ID</span><span>ITEM</span><span>QTY</span><span>ASSIGNED / STATUS</span><span></span></div><div id="list"></div><div id="empty" class="hidden py-12 text-center text-slate-500">No FNG records found</div></section>
-</main>
-<div id="newModal" class="modal fixed inset-0 z-40 flex items-center justify-center bg-black/75 p-4"><div class="card modal-panel max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl border border-line bg-panel p-6"><div class="flex justify-between"><div><h2 class="text-xl font-bold text-white">New FNG</h2><p class="text-sm text-slate-500">Enter the FNG once, then add each item separately.</p></div><button class="closeNew"><i data-lucide="x"></i></button></div><form id="newForm" class="mt-5"><label class="text-xs font-semibold text-slate-400">FNG ID<input id="fngInput" name="fng" autocomplete="off" class="mt-1.5 h-11 w-full rounded-lg border border-line bg-ink px-3 text-base uppercase text-white" placeholder="FNG-1"></label><div class="mt-5 flex justify-between"><b>Items under this FNG</b><button id="addLine" type="button" class="rounded-lg border border-emerald-400/20 px-3 py-2 text-xs font-bold text-accent">+ Add item</button></div><div id="lines" class="mt-3 space-y-2"></div><p id="formError" class="mt-3 hidden rounded-lg bg-rose-500/10 p-3 text-xs text-rose-400"></p><div class="mt-5 flex justify-end gap-2"><button type="button" class="closeNew rounded-lg border border-line px-4 py-2">Cancel</button><button class="rounded-lg bg-accent px-4 py-2 font-bold text-ink">Create & assign</button></div></form></div></div>
-<div id="editModal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"><div class="card modal-panel w-full max-w-md rounded-2xl border border-line bg-panel p-6"><div class="flex justify-between"><div><h2 class="text-xl font-bold text-white">Edit item</h2><p class="text-sm text-slate-500">Update the row without losing its location groups.</p></div><button id="closeEdit"><i data-lucide="x"></i></button></div><form id="editForm" class="mt-5 space-y-4"><label class="block text-xs text-slate-400">FNG ID<input name="fng" class="mt-1.5 h-11 w-full rounded-lg border border-line bg-ink px-3 text-base uppercase text-white"></label><label class="block text-xs text-slate-400">Item name<input name="name" class="mt-1.5 h-11 w-full rounded-lg border border-line bg-ink px-3 text-base text-white"></label><label class="block text-xs text-slate-400">Total quantity<input name="qty" type="number" min="1" inputmode="numeric" class="mt-1.5 h-11 w-full rounded-lg border border-line bg-ink px-3 text-base text-white"></label><p id="editError" class="hidden rounded-lg bg-rose-500/10 p-3 text-xs text-rose-400"></p><div class="flex justify-end gap-2"><button id="cancelEdit" type="button" class="rounded-lg border border-line px-4 py-2">Cancel</button><button class="rounded-lg bg-accent px-4 py-2 font-bold text-ink">Update item</button></div></form></div></div>
-<div id="confirmModal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"><div class="card modal-panel w-full max-w-md rounded-2xl border border-line bg-panel p-6"><h2 id="confirmTitle" class="text-lg font-bold text-white">Confirm</h2><p id="confirmText" class="mt-2 whitespace-pre-line text-sm text-slate-400"></p><div class="mt-6 flex justify-end gap-2"><button id="cancelRemove" class="rounded-lg border border-line px-4 py-2">Cancel</button><button id="doRemove" class="rounded-lg bg-rose-500 px-4 py-2 font-bold text-white">Remove</button></div></div></div>
-<div id="recoveryModal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"><div class="card modal-panel w-full max-w-lg rounded-2xl border border-line bg-panel p-6"><div class="flex justify-between"><h2 class="text-xl font-bold text-white">Recently deleted</h2><button id="closeRecovery"><i data-lucide="x"></i></button></div><div id="recovery" class="mt-4 space-y-2"></div></div></div>
-<div id="toast" class="toast fixed bottom-5 left-1/2 z-[60] max-w-[92vw] rounded-xl bg-emerald-950 px-4 py-3 text-sm text-emerald-300"></div>
-<script>
-const STORE_KEY='warehouseReceiving:v1',zones=['A','B','C','D','E','Loading'];let txs=[],deleted=[],openItem=null,q='',pending=null,editTarget=null,editingPallet=null,addingPallet=null;const $=s=>document.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)],esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])),uid=p=>`${p}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,icons=()=>window.lucide?.createIcons?.();
-function activePallets(i){return (i.locationGroups||[]).flatMap(g=>g.pallets||[])}function sum(i){return activePallets(i).reduce((n,p)=>n+Number(p.qty||0),0)}function remaining(i){return Number(i.qty||0)-sum(i)}function findTx(id){return txs.find(t=>t.id===id)}function findItem(id){return txs.flatMap(t=>t.items||[]).find(i=>i.id===id)}function findGroup(item,id){return (item?.locationGroups||[]).find(g=>g.id===id)}function findContext(itemId,groupId,palletId){const item=findItem(itemId),group=findGroup(item,groupId),pallet=(group?.pallets||[]).find(p=>p.id===palletId);return{item,group,pallet}}
-function normalizePallet(p){return{id:p.id||uid('pallet'),palletNumber:String(p.palletNumber??p.pallet??''),qty:Number(p.qty??p.quantity)||0}}function normalizeGroup(g){return{id:g.id||uid('location'),zone:g.zone||'',locationPhoto:g.locationPhoto||g.photo||'',pallets:(g.pallets||[]).map(normalizePallet).filter(p=>p.palletNumber&&p.qty>0)}}
-function normalizeState(state){const out={txs:[],deleted:Array.isArray(state.deleted)?state.deleted:[]};out.txs=(state.txs||[]).map(tx=>{let liftedDoc=tx.doc||null;const ntx={id:tx.id,doc:tx.doc||null,items:(tx.items||[]).map(item=>{let groups=[];if(Array.isArray(item.locationGroups))groups=item.locationGroups.map(normalizeGroup);else if(Array.isArray(item.loc))groups=item.loc.map(l=>{if(!liftedDoc&&l.doc)liftedDoc=l.doc;return normalizeGroup({zone:l.zone,photo:l.photo,pallets:[{palletNumber:l.pallet,qty:l.qty}]})});return{id:item.id||uid('line'),name:item.name||'Untitled item',qty:Number(item.qty)||0,locationGroups:groups}})};ntx.doc=liftedDoc;return ntx});out.deleted=out.deleted.map(d=>d.type?d:{type:'tx',tx:d.tx,index:d.index}).filter(d=>d.type==='tx'||d.type==='pallet');return out}
-function loadState(){try{const raw=localStorage.getItem(STORE_KEY);if(raw)return normalizeState(JSON.parse(raw))}catch(e){console.warn('Could not load saved receiving data',e)}return{txs:[],deleted:[]}}function saveState(){try{localStorage.setItem(STORE_KEY,JSON.stringify({txs,deleted,version:2}))}catch(e){console.warn('Could not save receiving data',e);toast('Storage full - changes not saved')}}const loaded=loadState();txs=loaded.txs;deleted=loaded.deleted;saveState();
-function photoData(file){return new Promise((resolve,reject)=>{if(!file)return resolve('');if(!file.type.startsWith('image/'))return reject(new Error('Please choose a photo or image.'));const img=new Image(),reader=new FileReader();reader.onerror=reject;reader.onload=()=>{img.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',.72))};img.onerror=()=>reject(new Error('Could not read that image.'));img.src=reader.result};reader.readAsDataURL(file)})}function docData(file){return photoData(file).then(data=>data?{name:file.name||'document-photo.jpg',type:'image/jpeg',data}:null)}
-function render(anim='none'){const data=txs.filter(t=>(t.id+' '+(t.items||[]).map(i=>i.name).join(' ')).toLowerCase().includes(q));$('#empty').classList.toggle('hidden',!!data.length);$('#list').innerHTML=data.map(t=>`<article data-tx="${esc(t.id)}">${docHtml(t)}${(t.items||[]).map(i=>itemHtml(i,t,anim)).join('')}<div class="flex justify-end border-b border-line bg-ink/30 px-3 pb-2"><button class="removeTx text-[11px] text-rose-400/70 hover:text-rose-400" data-tx="${esc(t.id)}">Remove ${esc(t.id)}</button></div></article>`).join('');kpis();bind();icons();if(anim==='item')requestAnimationFrame(()=>requestAnimationFrame(()=>openSlide(`[data-item="${openItem}"] .itemSlide`,true)))}
-function itemHtml(i,t,anim){const o=openItem===i.id,a=sum(i),d=remaining(i),c=d===0?'emerald':d>0?'amber':'rose';return `<div data-item="${esc(i.id)}" class="border-b border-line bg-panel"><button class="itemBtn ${o?'expanded':''} grid w-full grid-cols-[1fr_auto] items-center gap-2 px-4 py-4 text-left hover:bg-white/[.025] sm:grid-cols-[120px_1fr_80px_150px_25px] sm:px-5"><span class="font-mono text-xs font-bold text-accent">${esc(t.id)}</span><span class="item-name"><b class="block text-white">${esc(i.name)}</b><small class="mt-1 block text-slate-500 sm:hidden">Qty ${i.qty} / ${a} assigned</small></span><span class="hidden font-mono sm:block">${i.qty}</span><span class="hidden text-${c}-400 sm:block">${a}/${i.qty} - ${d===0?'Fully assigned':d>0?d+' remaining':-d+' over'}</span><i data-lucide="chevron-down" class="chev h-4 w-4"></i></button><div class="itemSlide slide ${o&&anim!=='item'?'open':''}" ${o&&anim!=='item'?'style="height:auto"':''}><div class="space-y-4 border-t border-line bg-ink/60 p-3 sm:p-4">${expandedHtml(i,t)}</div></div></div>`}
-function expandedHtml(i,t){const a=sum(i),d=remaining(i),pct=i.qty?Math.min(100,Math.max(0,a/i.qty*100)):0;return `<div class="rounded-xl border border-line bg-panel p-4"><div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><b class="text-white">Assigned ${a} / ${i.qty}</b><div class="mt-1 text-sm ${d===0?'text-accent':d>0?'text-amber-400':'text-rose-400'}">${d===0?'Fully assigned':d>0?d+' remaining':-d+' over assigned'}</div></div><button class="editItem flex items-center gap-2 self-start rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:text-accent" data-item="${esc(i.id)}"><i data-lucide="pencil" class="h-4 w-4"></i>Edit item</button></div><div class="mt-3 h-2 overflow-hidden rounded-full bg-ink"><div class="h-full rounded-full ${d<0?'bg-rose-500':d===0?'bg-accent':'bg-amber-400'}" style="width:${pct}%"></div></div></div><div class="space-y-3">${(i.locationGroups||[]).map((g,n)=>groupHtml(i,g,n)).join('')||'<div class="rounded-xl border border-dashed border-line p-5 text-center text-sm text-slate-500">No location groups yet</div>'}</div><button class="addGroup flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-accent/50 px-4 py-3 text-sm font-bold text-accent" data-item="${esc(i.id)}"><i data-lucide="plus" class="h-4 w-4"></i>Add another location / photo</button>`}
-function docHtml(t){return `<section class="border-b border-line bg-ink/30 px-4 py-3 sm:px-5"><div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div class="flex min-w-0 items-center gap-3">${t.doc?`<img src="${t.doc.data}" alt="Document photo" class="doc-thumb small-thumb shrink-0">`:`<span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-dashed border-line text-slate-500"><i data-lucide="file-image" class="h-5 w-5"></i></span>`}<div class="min-w-0"><b class="block text-sm text-white">Document photo</b><span class="block truncate text-xs text-slate-500">${t.doc?'Saved for '+esc(t.id):'No document photo for '+esc(t.id)}</span></div></div><div class="flex flex-wrap gap-2">${t.doc?`<a href="${t.doc.data}" target="_blank" class="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-accent"><i data-lucide="eye" class="h-4 w-4"></i>View</a>`:''}<label class="file-btn relative flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-slate-200"><i data-lucide="camera" class="h-4 w-4"></i>Take photo<input data-doc="${esc(t.id)}" type="file" accept="image/*" capture="environment"></label><label class="file-btn relative flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-slate-200"><i data-lucide="image" class="h-4 w-4"></i>Choose photo<input data-doc="${esc(t.id)}" type="file" accept="image/*"></label></div></div></section>`}
-function groupHtml(i,g,n){const add=addingPallet&&addingPallet.itemId===i.id&&addingPallet.groupId===g.id;return `<section class="locCard rounded-xl border border-line bg-panel p-4" data-item="${esc(i.id)}" data-group="${esc(g.id)}"><div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><b class="text-sm tracking-wider text-white">LOCATION ${n+1}</b><button class="deleteGroup self-start rounded-lg border border-rose-500/30 px-3 py-2 text-sm text-rose-400" data-item="${esc(i.id)}" data-group="${esc(g.id)}">Delete location</button></div><div class="mt-4 grid gap-4 lg:grid-cols-[240px_1fr_220px]"><label class="block text-xs font-semibold text-slate-400">Zone<select class="groupZone mt-1.5 h-11 w-full rounded-lg border border-line bg-ink px-3 text-base text-white"><option value="">Select zone</option>${zones.map(z=>`<option ${g.zone===z?'selected':''}>${z}</option>`).join('')}</select></label><div><div class="mb-2 text-xs font-semibold text-slate-400">Pallets in this photo</div><div class="space-y-2">${(g.pallets||[]).map(p=>palletHtml(i,g,p)).join('')||'<div class="rounded-lg border border-dashed border-line p-3 text-sm text-slate-500">No pallets linked yet</div>'}</div>${add?addPalletHtml(i,g):`<button class="addPallet mt-3 flex items-center gap-2 rounded-lg border border-emerald-400/20 px-3 py-2 text-sm font-bold text-accent" data-item="${esc(i.id)}" data-group="${esc(g.id)}"><i data-lucide="plus" class="h-4 w-4"></i>Add pallet to this photo</button>`}</div><div><div class="mb-2 text-xs font-semibold text-slate-400">Location photo</div>${g.locationPhoto?`<div class="flex items-center gap-3"><img src="${g.locationPhoto}" alt="Location photo" class="photo-thumb"><span class="rounded-full bg-emerald-400/10 px-2 py-1 text-xs text-accent">${g.pallets.length} pallets linked</span></div>`:'<div class="rounded-lg border border-dashed border-line p-4 text-sm text-slate-500">No photo yet</div>'}<div class="mt-3 flex flex-wrap gap-2">${g.locationPhoto?`<a href="${g.locationPhoto}" target="_blank" class="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-accent"><i data-lucide="eye" class="h-4 w-4"></i>View</a>`:''}<label class="file-btn relative flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-slate-200"><i data-lucide="camera" class="h-4 w-4"></i>Take photo<input class="groupPhoto" type="file" accept="image/*" capture="environment"></label><label class="file-btn relative flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-slate-200"><i data-lucide="image" class="h-4 w-4"></i>Choose photo<input class="groupPhoto" type="file" accept="image/*"></label></div><button class="saveGroup mt-3 w-full rounded-lg bg-accent px-4 py-2 font-bold text-ink" data-item="${esc(i.id)}" data-group="${esc(g.id)}">Save location</button></div></div></section>`}
-function palletHtml(i,g,p){const edit=editingPallet&&editingPallet.itemId===i.id&&editingPallet.groupId===g.id&&editingPallet.palletId===p.id;if(edit)return `<form class="editPallet tap-row grid items-end gap-2 rounded-lg border border-accent/40 bg-ink p-3 sm:grid-cols-[1fr_110px_auto_auto]" data-item="${esc(i.id)}" data-group="${esc(g.id)}" data-pallet="${esc(p.id)}"><label class="text-xs text-slate-400">Pallet number<input name="pallet" value="${esc(p.palletNumber)}" class="mt-1 h-11 w-full rounded-lg border border-line bg-panel px-3 text-white"></label><label class="text-xs text-slate-400">Qty<input name="qty" type="number" min="1" value="${p.qty}" class="mt-1 h-11 w-full rounded-lg border border-line bg-panel px-3 text-white"></label><button class="rounded-lg bg-accent px-3 py-2 font-bold text-ink">Save</button><button type="button" class="cancelPallet rounded-lg border border-line px-3 py-2" data-item="${esc(i.id)}" data-group="${esc(g.id)}" data-pallet="${esc(p.id)}">Cancel</button></form>`;return `<div class="tap-row grid items-center gap-2 rounded-lg border border-line p-3 sm:grid-cols-[1fr_90px_auto_auto]"><div class="min-w-0"><b class="break-words text-white">Pallet #${esc(p.palletNumber)}</b><div class="text-xs text-slate-500">Zone ${esc(g.zone||'not set')}</div></div><b class="text-accent">Qty ${p.qty}</b><button class="editPalletBtn rounded-lg border border-line px-3 py-2 text-sm text-slate-300" data-item="${esc(i.id)}" data-group="${esc(g.id)}" data-pallet="${esc(p.id)}">Edit</button><button class="removePallet rounded-lg border border-rose-500/30 px-3 py-2 text-sm text-rose-400" data-item="${esc(i.id)}" data-group="${esc(g.id)}" data-pallet="${esc(p.id)}">Remove</button></div>`}
-function addPalletHtml(i,g){return `<form class="addPalletForm mobile-stack mt-3 grid items-end gap-2 rounded-lg border border-accent/30 bg-ink p-3 sm:grid-cols-[1fr_110px_auto_auto]" data-item="${esc(i.id)}" data-group="${esc(g.id)}"><label class="text-xs text-slate-400">Pallet number<input name="pallet" class="mt-1 h-11 w-full rounded-lg border border-line bg-panel px-3 text-white"></label><label class="text-xs text-slate-400">Qty<input name="qty" type="number" min="1" inputmode="numeric" class="mt-1 h-11 w-full rounded-lg border border-line bg-panel px-3 text-white"></label><button class="rounded-lg bg-accent px-3 py-2 font-bold text-ink">Add</button><button type="button" class="cancelAddPallet rounded-lg border border-line px-3 py-2" data-item="${esc(i.id)}" data-group="${esc(g.id)}">Cancel</button></form>`}
-function openSlide(s,focus){const p=$(s);if(!p)return;p.classList.add('open');p.style.height=p.scrollHeight+'px';p.ontransitionend=e=>{if(e.propertyName==='height'){p.style.height='auto';p.ontransitionend=null;if(focus)p.querySelector('select,input,button')?.focus()}}}function closeSlide(s,done){const p=$(s);p.style.height=p.scrollHeight+'px';p.offsetHeight;requestAnimationFrame(()=>{p.classList.remove('open');p.style.height='0'});p.ontransitionend=e=>{if(e.propertyName==='height'){p.ontransitionend=null;done()}}}
-function validatePallet(item,qty,current=0){if(!Number.isInteger(qty)||qty<1)return'Pallet quantity must be greater than zero.';const allowed=Number(item.qty)-sum(item)+current;if(qty>allowed)return`Quantity exceeds remaining allowable quantity. You can assign up to ${allowed}.`;return''}
-function bind(){$$('.itemBtn').forEach(b=>b.onclick=()=>{const id=b.closest('[data-item]').dataset.item;if(openItem===id)return closeSlide(`[data-item="${id}"] .itemSlide`,()=>{openItem=null;render()});openItem=id;render('item')});$$('.editItem').forEach(b=>b.onclick=()=>showEdit(b.dataset.item));$$('.addGroup').forEach(b=>b.onclick=()=>{const item=findItem(b.dataset.item);item.locationGroups.push({id:uid('location'),zone:'',locationPhoto:'',pallets:[]});saveState();openItem=item.id;render()});$$('.deleteGroup').forEach(b=>b.onclick=()=>askDeleteGroup(b.dataset.item,b.dataset.group));$$('.addPallet').forEach(b=>b.onclick=()=>{const {group}=findContext(b.dataset.item,b.dataset.group);const zone=b.closest('.locCard')?.querySelector('.groupZone')?.value;if(group&&zone)group.zone=zone;addingPallet={itemId:b.dataset.item,groupId:b.dataset.group};render()});$$('.cancelAddPallet').forEach(b=>b.onclick=()=>{addingPallet=null;render()});$$('.editPalletBtn').forEach(b=>b.onclick=()=>{editingPallet={itemId:b.dataset.item,groupId:b.dataset.group,palletId:b.dataset.pallet};render()});$$('.cancelPallet').forEach(b=>b.onclick=()=>{editingPallet=null;render()});$$('.removePallet').forEach(b=>b.onclick=()=>askRemovePallet(b.dataset.item,b.dataset.group,b.dataset.pallet));$$('.saveGroup').forEach(b=>b.onclick=()=>saveGroup(b.closest('.locCard')));$$('.addPalletForm').forEach(f=>f.onsubmit=addPallet);$$('.editPallet').forEach(f=>f.onsubmit=savePallet);$$('[data-doc]').forEach(input=>input.onchange=saveDoc);$$('.removeTx').forEach(b=>b.onclick=()=>askRemoveTx(b.dataset.tx))}
-async function saveGroup(card){const {item,group}=findContext(card.dataset.item,card.dataset.group),zone=card.querySelector('.groupZone').value,files=$$('.groupPhoto',card),file=files.map(x=>x.files[0]).find(Boolean);if(!zone)return toast('Choose a zone before saving.');group.zone=zone;try{if(file)group.locationPhoto=await photoData(file)}catch(e){toast(e.message);return}saveState();openItem=item.id;render();toast('Location saved')}
-function addPallet(e){e.preventDefault();const f=e.currentTarget,{item,group}=findContext(f.dataset.item,f.dataset.group),card=f.closest('.locCard'),zone=card.querySelector('.groupZone').value,palletNumber=f.pallet.value.trim(),qty=Number(f.qty.value);if(!zone)return toast('Choose a zone first.');if(!palletNumber)return f.pallet.focus();const message=validatePallet(item,qty);if(message)return toast(message);group.zone=zone;group.pallets.push({id:uid('pallet'),palletNumber,qty});addingPallet=null;saveState();openItem=item.id;render();toast('Pallet added')}
-function savePallet(e){e.preventDefault();const f=e.currentTarget,{item,pallet}=findContext(f.dataset.item,f.dataset.group,f.dataset.pallet),palletNumber=f.pallet.value.trim(),qty=Number(f.qty.value);if(!palletNumber)return f.pallet.focus();const message=validatePallet(item,qty,Number(pallet.qty));if(message)return toast(message);pallet.palletNumber=palletNumber;pallet.qty=qty;editingPallet=null;saveState();openItem=item.id;render();toast('Pallet updated')}
-async function saveDoc(e){const tx=findTx(e.target.dataset.doc),file=e.target.files[0];try{const doc=await docData(file);if(doc)tx.doc=doc}catch(err){toast(err.message);return}saveState();render();toast('Document photo saved')}
-function askRemoveTx(id){pending={type:'tx',id};const t=findTx(id);$('#confirmTitle').textContent='Remove transaction?';$('#confirmText').textContent=`${id} and all ${t.items.length} items will move to Recently Deleted.`;show('#confirmModal')}function askRemovePallet(itemId,groupId,palletId){const {group,pallet}=findContext(itemId,groupId,palletId);pending={type:'pallet',itemId,groupId,palletId};$('#confirmTitle').textContent='Remove pallet?';$('#confirmText').textContent=`Pallet #${pallet.palletNumber}\nZone ${group.zone||'not set'}\nQuantity ${pallet.qty}\n\nOnly this pallet will be removed. The location photo will remain.`;show('#confirmModal')}function askDeleteGroup(itemId,groupId){const {group}=findContext(itemId,groupId);pending={type:'group',itemId,groupId};$('#confirmTitle').textContent='Delete location?';$('#confirmText').textContent=group.pallets.length?`This will remove LOCATION with ${group.pallets.length} pallets and its shared photo.`:'This empty location will be deleted. Its photo will be removed too.';show('#confirmModal')}
-$('#cancelRemove').onclick=()=>{pending=null;hide('#confirmModal')};$('#doRemove').onclick=()=>{if(!pending)return;if(pending.type==='tx'){const n=txs.findIndex(t=>t.id===pending.id);deleted.unshift({type:'tx',tx:txs.splice(n,1)[0],index:n});openItem=null;toast('Moved to Recently Deleted')}else if(pending.type==='pallet'){const {item,group}=findContext(pending.itemId,pending.groupId,pending.palletId),n=group.pallets.findIndex(p=>p.id===pending.palletId),pallet=group.pallets.splice(n,1)[0];deleted.unshift({type:'pallet',txId:txs.find(t=>t.items.some(i=>i.id===item.id)).id,itemId:item.id,groupId:group.id,pallet,index:n});openItem=item.id;toast(group.pallets.length?'Pallet moved to Recently Deleted':'Pallet removed. Location kept until you delete it.')}else if(pending.type==='group'){const item=findItem(pending.itemId),n=item.locationGroups.findIndex(g=>g.id===pending.groupId);item.locationGroups.splice(n,1);openItem=item.id;toast('Location deleted')}pending=null;hide('#confirmModal');saveState();deletedUi();render()}
-function deletedUi(){$('#deletedCount').textContent=deleted.length;$('#deletedBtn').classList.toggle('hidden',!deleted.length);$('#deletedBtn').classList.toggle('flex',!!deleted.length)}$('#deletedBtn').onclick=()=>{renderRecovery();show('#recoveryModal')};$('#closeRecovery').onclick=()=>hide('#recoveryModal');function renderRecovery(){$('#recovery').innerHTML=deleted.length?deleted.map((d,n)=>d.type==='tx'?`<div class="flex items-center justify-between rounded-lg border border-line p-3"><div><b class="font-mono text-accent">${esc(d.tx.id)}</b><small class="block text-slate-500">${d.tx.items.length} items</small></div><button class="restore text-accent" data-n="${n}">Restore</button></div>`:`<div class="flex items-center justify-between rounded-lg border border-line p-3"><div><b class="text-white">Pallet #${esc(d.pallet.palletNumber)}</b><small class="block text-slate-500">${esc(d.txId)} - Qty ${d.pallet.qty}</small></div><button class="restore text-accent" data-n="${n}">Restore</button></div>`).join(''):'<div class="py-8 text-center text-slate-500">No deleted records</div>';$$('.restore').forEach(b=>b.onclick=()=>restoreDeleted(Number(b.dataset.n)))}function restoreDeleted(n){const d=deleted.splice(n,1)[0];if(d.type==='tx')txs.splice(Math.min(d.index,txs.length),0,d.tx);else{const item=findItem(d.itemId),group=findGroup(item,d.groupId);if(!group){toast('Original location group is no longer available');deleted.splice(n,0,d);return}group.pallets.splice(Math.min(d.index,group.pallets.length),0,d.pallet);openItem=item.id}saveState();deletedUi();hide('#recoveryModal');render();toast('Record restored')}
-function kpis(){const items=txs.flatMap(t=>t.items||[]),done=items.filter(i=>sum(i)===Number(i.qty)).length,assigned=items.reduce((n,i)=>n+sum(i),0),total=items.reduce((n,i)=>n+Number(i.qty||0),0);$('#kTx').textContent=txs.length;$('#kItems').textContent=items.length;$('#kAssigned').textContent=assigned;$('#kRemain').textContent=total-assigned;$('#progress').textContent=`${done} of ${items.length} items fully assigned`}
-function addLine(){const d=document.createElement('div');d.className='line grid gap-2 sm:grid-cols-[1fr_110px_44px]';d.innerHTML='<input name="name" class="h-11 rounded-lg border border-line bg-ink px-2 text-white" placeholder="Item name"><input name="qty" type="number" min="1" inputmode="numeric" class="h-11 rounded-lg border border-line bg-ink px-2 text-white" placeholder="Qty"><button type="button" class="removeLine rounded-lg border border-rose-500/30 text-rose-400">Remove</button>';d.querySelector('.removeLine').onclick=()=>{if($$('.line').length>1)d.remove()};$('#lines').appendChild(d)}$('#addLine').onclick=addLine;$('#newBtn').onclick=()=>{$('#newForm').reset();$('#formError').classList.add('hidden');$('#lines').innerHTML='';addLine();show('#newModal');setTimeout(()=>$('#fngInput').focus(),220)};$$('.closeNew').forEach(b=>b.onclick=()=>hide('#newModal'));
-$('#newForm').onsubmit=e=>{e.preventDefault();const id=e.currentTarget.fng.value.trim().toUpperCase(),lines=$$('.line').map(d=>({id:uid('line'),name:d.querySelector('[name=name]').value.trim(),qty:Number(d.querySelector('[name=qty]').value),locationGroups:[]})),err=$('#formError');let m=!id?'Enter the FNG ID.':txs.some(t=>t.id.toLowerCase()===id.toLowerCase())?'This FNG already exists.':lines.some(i=>!i.name||!Number.isInteger(i.qty)||i.qty<1)?'Complete every item name and quantity.':'';if(m){err.textContent=m;err.classList.remove('hidden');return}txs.unshift({id,doc:null,items:lines});saveState();openItem=lines[0].id;hide('#newModal');render('item');toast('FNG created')};
-function showEdit(itemId){const item=findItem(itemId),group=txs.find(t=>t.items.some(i=>i.id===itemId));if(!item||!group)return;editTarget=itemId;const f=$('#editForm');f.fng.value=group.id;f.name.value=item.name;f.qty.value=item.qty;$('#editError').classList.add('hidden');show('#editModal');setTimeout(()=>{f.name.focus();f.name.select()},220)}function hideEdit(){editTarget=null;hide('#editModal')}$('#closeEdit').onclick=hideEdit;$('#cancelEdit').onclick=hideEdit;
-$('#editForm').onsubmit=e=>{e.preventDefault();const f=e.currentTarget,newFng=f.fng.value.trim().toUpperCase(),name=f.name.value.trim(),qty=Number(f.qty.value),error=$('#editError'),item=findItem(editTarget),source=txs.find(t=>t.items.some(i=>i.id===editTarget));let message=!newFng||!name||!Number.isInteger(qty)||qty<1?'Complete FNG, item name, and a valid quantity.':qty<sum(item)?`Total quantity cannot be below the assigned quantity (${sum(item)}).`:'';const target=txs.find(t=>t.id.toLowerCase()===newFng.toLowerCase());if(!message&&target?.items.some(i=>i.id!==editTarget&&i.name.toLowerCase()===name.toLowerCase()))message='That FNG already contains an item with this name.';if(message){error.textContent=message;error.classList.remove('hidden');return}item.name=name;item.qty=qty;if(source.id.toLowerCase()!==newFng.toLowerCase()){source.items.splice(source.items.findIndex(i=>i.id===item.id),1);if(target)target.items.push(item);else txs.push({id:newFng,doc:null,items:[item]});if(!source.items.length)txs.splice(txs.indexOf(source),1)}saveState();openItem=item.id;editTarget=null;hide('#editModal');render();toast('Item updated')};
-function show(s){$(s).classList.add('show')}function hide(s){$(s).classList.remove('show')}function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(window.tt);window.tt=setTimeout(()=>t.classList.remove('show'),1800)}$('#search').oninput=e=>{q=e.target.value.toLowerCase();render()};document.addEventListener('focusin',e=>{if(innerWidth<640&&e.target.closest('.locCard'))setTimeout(()=>e.target.scrollIntoView({behavior:'smooth',block:'center'}),280)});deletedUi();render();icons();
-</script>
+<body class="min-h-screen antialiased selection:bg-blue-500 selection:text-white pb-12" onclick="closeAllCustomDropdowns(event)">
+    <div class="app-shell mx-auto">
+        
+        <!-- Page Heading -->
+        <div class="page-header">
+            <div class="page-heading">
+                <h1>Stock Received</h1>
+                <p>View and manage all received items</p>
+            </div>
+        </div>
+
+        <!-- Search + Primary Action Toolbar -->
+        <div class="action-toolbar">
+            <div class="search-wrap toolbar-search">
+                <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Search FNG, PR#, item, pallet..." class="search-input">
+            </div>
+            <button onclick="createRipple(event); openNewModal()" class="ripple-btn new-transaction-btn toolbar-new-btn" aria-label="Create new FNG">
+                <span class="plus-sign">＋</span>
+                <span class="new-fng-label">New FNG</span>
+            </button>
+        </div>
+
+        <!-- Main Column Headers -->
+        <div class="stock-header">
+            <span>ID / DATE</span>
+            <span>PR#</span>
+            <span>ITEM (QTY)</span>
+            <span>ASSIGNED</span>
+        </div>
+
+        <!-- Inventory List Container -->
+        <div id="inventory-list" class="space-y-3">
+            <!-- Dynamically populated rows -->
+        </div>
+
+        <!-- Footer -->
+        <div class="list-footer">
+            <span id="result-count">Showing transactions</span>
+            <span class="fast-entry-note">Fast Entry Enabled · Tap ✓ or press Enter to save</span>
+        </div>
+
+    </div>
+
+    <!-- Modal for New Transaction -->
+    <div id="new-modal" class="custom-modal fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
+        <div class="custom-modal-content bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 w-full max-w-xl shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h2 class="text-lg font-bold text-slate-100">Add New Received Transaction</h2>
+                <span class="text-xs text-slate-400">Shared ID Header</span>
+            </div>
+
+            <!-- Shared ID Header Inputs (ID & PR#) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Transaction ID (e.g. FNG-1)</label>
+                    <input type="text" id="new-id-input" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-semibold" placeholder="FNG-1">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">PR# (Purchase Req)</label>
+                    <input type="text" id="new-pr-input" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-semibold" placeholder="PR-9001">
+                </div>
+            </div>
+
+            <!-- Dynamic Items Container inside Modal -->
+            <div class="space-y-3 overflow-y-auto pr-1 flex-1 max-h-[36vh]" id="modal-items-container">
+                <!-- Dynamically populated item rows -->
+            </div>
+
+            <!-- Add Row Button -->
+            <div>
+                <button onclick="createRipple(event); addModalItemRow()" class="ripple-btn w-full py-2 border border-dashed border-slate-700 hover:border-blue-500/60 rounded-xl text-slate-400 hover:text-blue-400 text-xs font-semibold transition-all flex items-center justify-center space-x-1">
+                    <span>+ Add Another Item to this ID</span>
+                </button>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+                <button onclick="createRipple(event); closeNewModal()" class="ripple-btn px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm transition-all">Cancel</button>
+                <button onclick="createRipple(event); createNewTransactions()" class="ripple-btn px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-all shadow-md shadow-blue-900/30">Create Transactions</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Popup Modal -->
+    <div id="alert-modal" class="custom-modal fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
+        <div class="custom-modal-content bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 w-full max-w-sm shadow-2xl space-y-4 text-center">
+            <div class="w-12 h-12 rounded-full bg-amber-950/60 border border-amber-900/60 flex items-center justify-center mx-auto text-amber-400 font-bold text-lg">!</div>
+            <div class="space-y-1">
+                <h3 id="alert-title" class="text-base font-bold text-slate-100">Notice</h3>
+                <p id="alert-message" class="text-xs text-slate-400 leading-relaxed">Please enter a pallet number.</p>
+            </div>
+            <div class="pt-2">
+                <button onclick="createRipple(event); closeAlertModal()" class="ripple-btn w-full px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-blue-950/40">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Popup Modal for Deletion -->
+    <div id="confirm-modal" class="custom-modal fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
+        <div class="custom-modal-content bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 w-full max-w-sm shadow-2xl space-y-4 text-center">
+            <div class="w-12 h-12 rounded-full bg-red-950/60 border border-red-900/60 flex items-center justify-center mx-auto text-red-400 font-bold text-lg">!</div>
+            <div class="space-y-1">
+                <h3 id="confirm-title" class="text-base font-bold text-slate-100">Confirm Deletion</h3>
+                <p id="confirm-message" class="text-xs text-slate-400 leading-relaxed">Are you sure you want to remove this item?</p>
+            </div>
+            <div class="flex space-x-3 pt-2">
+                <button onclick="createRipple(event); closeConfirmModal()" class="ripple-btn flex-1 px-4 py-2.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs sm:text-sm font-medium transition-all">Cancel</button>
+                <button id="confirm-yes-btn" onclick="createRipple(event)" class="ripple-btn flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-red-950/40">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Image Viewer Modal -->
+    <div id="image-viewer-modal" class="custom-modal fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center p-4 z-50 opacity-0 pointer-events-none" onclick="closeImageViewer()">
+        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
+            <button onclick="createRipple(event); closeImageViewer()" class="ripple-btn absolute -top-10 right-0 text-slate-400 hover:text-white text-sm font-semibold bg-slate-800/80 hover:bg-slate-700 px-3 py-1 rounded-lg transition">✕ Close</button>
+            <img id="fullscreen-img" src="" alt="Attached Preview" class="max-w-full max-h-[80vh] rounded-2xl border border-slate-800 shadow-2xl object-contain">
+        </div>
+    </div>
+
+    <script>
+        let inventory = [
+            {
+                id: 'FNG-1',
+                pr: 'PR-8821',
+                createdAt: '2026-06-01 08:30',
+                item: 'Aluminum frame — matte black',
+                qty: 120,
+                isExpanded: true,
+                locations: [{ pallet: 'P-101', zone: 'A', qty: 44, createdAt: '2026-06-01 09:15' }],
+                attachedPhotos: [],
+                tempZone: 'A'
+            },
+            {
+                id: 'FNG-1',
+                pr: 'PR-8821',
+                createdAt: '2026-06-01 08:30',
+                item: 'Rubber sealing gasket 10m',
+                qty: 50,
+                isExpanded: false,
+                locations: [],
+                attachedPhotos: [],
+                tempZone: 'A'
+            },
+            {
+                id: 'FNG-2',
+                pr: 'PR-8822',
+                createdAt: '2026-06-02 10:14',
+                item: 'Tempered glass panel 8mm',
+                qty: 64,
+                isExpanded: false,
+                locations: [{ pallet: 'P-102', zone: 'B', qty: 5, createdAt: '2026-06-02 11:00' }],
+                attachedPhotos: [],
+                tempZone: 'A'
+            },
+            {
+                id: 'FNG-3',
+                pr: 'PR-8825',
+                createdAt: '2026-06-03 14:20',
+                item: 'Window handle set',
+                qty: 45,
+                isExpanded: false,
+                locations: [{ pallet: 'P-103', zone: 'Loading', qty: 5, createdAt: '2026-06-03 14:45' }],
+                attachedPhotos: [],
+                tempZone: 'A'
+            }
+        ];
+
+        let pendingAction = null;
+        let modalRows = [];
+        let searchQuery = '';
+        const validZones = ['A', 'B', 'C', 'D', 'Loading'];
+
+        // Ripple Effect Click Transition
+        function createRipple(event) {
+            const button = event.currentTarget;
+            const circle = document.createElement('span');
+            const diameter = Math.max(button.clientWidth, button.clientHeight);
+            const radius = diameter / 2;
+
+            circle.style.width = circle.style.height = `${diameter}px`;
+            circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+            circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+            circle.classList.add('ripple');
+
+            const ripple = button.getElementsByClassName('ripple')[0];
+            if (ripple) {
+                ripple.remove();
+            }
+
+            button.appendChild(circle);
+        }
+
+        function getCurrentFormattedDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+
+        function handleSearch(query) {
+            searchQuery = query.toLowerCase().trim();
+            renderInventory();
+        }
+
+        function showAlertModal(message, title = "Required Field") {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-message').innerText = message;
+
+            const modal = document.getElementById('alert-modal');
+            modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                modal.classList.add('active');
+            });
+        }
+
+        function closeAlertModal() {
+            const modal = document.getElementById('alert-modal');
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.classList.add('hidden', 'opacity-0', 'pointer-events-none');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        function showConfirmDialog(title, message, onConfirm) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-message').innerText = message;
+            pendingAction = onConfirm;
+
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                modal.classList.add('active');
+            });
+
+            document.getElementById('confirm-yes-btn').onclick = function(e) {
+                createRipple(e);
+                if (pendingAction) pendingAction();
+                closeConfirmModal();
+            };
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.classList.add('hidden', 'opacity-0', 'pointer-events-none');
+                modal.classList.remove('flex');
+                pendingAction = null;
+            }, 300);
+        }
+
+        function openImageViewer(src) {
+            const modal = document.getElementById('image-viewer-modal');
+            document.getElementById('fullscreen-img').src = src;
+            modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                modal.classList.add('active');
+            });
+        }
+
+        function closeImageViewer() {
+            const modal = document.getElementById('image-viewer-modal');
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.classList.add('hidden', 'opacity-0', 'pointer-events-none');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        // Custom Dropdown Logic
+        function toggleCustomDropdown(index, event) {
+            event.stopPropagation();
+            const menu = document.getElementById(`custom-dropdown-menu-${index}`);
+            const arrow = document.getElementById(`custom-dropdown-arrow-${index}`);
+            
+            // Close all other dropdowns first
+            document.querySelectorAll('[id^="custom-dropdown-menu-"]').forEach(m => {
+                if (m.id !== `custom-dropdown-menu-${index}`) {
+                    m.classList.add('hidden', 'opacity-0', 'scale-95');
+                }
+            });
+            document.querySelectorAll('[id^="custom-dropdown-arrow-"]').forEach(a => {
+                if (a.id !== `custom-dropdown-arrow-${index}`) {
+                    a.classList.remove('rotate-180', 'text-blue-400');
+                }
+            });
+
+            const isHidden = menu.classList.contains('hidden');
+            if (isHidden) {
+                menu.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    menu.classList.remove('opacity-0', 'scale-95');
+                    arrow.classList.add('rotate-180', 'text-blue-400');
+                });
+            } else {
+                menu.classList.add('opacity-0', 'scale-95');
+                arrow.classList.remove('rotate-180', 'text-blue-400');
+                setTimeout(() => {
+                    menu.classList.add('hidden');
+                }, 200);
+            }
+        }
+
+        function selectCustomZone(index, zone, event) {
+            event.stopPropagation();
+            updateTemp(index, 'zone', zone);
+            
+            const label = document.getElementById(`custom-dropdown-label-${index}`);
+            if (label) {
+                label.innerText = zone === 'Loading' ? 'Loading' : `Zone ${zone}`;
+            }
+
+            const menu = document.getElementById(`custom-dropdown-menu-${index}`);
+            const arrow = document.getElementById(`custom-dropdown-arrow-${index}`);
+            if (menu) {
+                menu.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => menu.classList.add('hidden'), 200);
+            }
+            if (arrow) {
+                arrow.classList.remove('rotate-180', 'text-blue-400');
+            }
+
+            // Highlight selected option in list
+            const options = document.querySelectorAll(`#custom-dropdown-menu-${index} [data-zone]`);
+            options.forEach(opt => {
+                if (opt.getAttribute('data-zone') === zone) {
+                    opt.className = 'w-full text-left px-3.5 py-2.5 text-xs sm:text-sm font-semibold bg-blue-600/20 text-blue-400 flex items-center justify-between transition-colors';
+                } else {
+                    opt.className = 'w-full text-left px-3.5 py-2.5 text-xs sm:text-sm text-slate-300 hover:bg-slate-800/80 hover:text-slate-100 flex items-center justify-between transition-colors';
+                }
+            });
+        }
+
+        function closeAllCustomDropdowns(event) {
+            document.querySelectorAll('[id^="custom-dropdown-menu-"]').forEach(menu => {
+                menu.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => menu.classList.add('hidden'), 200);
+            });
+            document.querySelectorAll('[id^="custom-dropdown-arrow-"]').forEach(arrow => {
+                arrow.classList.remove('rotate-180', 'text-blue-400');
+            });
+        }
+
+        function renderInventory() {
+            const container = document.getElementById('inventory-list');
+            
+            const filteredInventory = inventory.map((item, originalIndex) => ({ item, originalIndex })).filter(({ item }) => {
+                if (!searchQuery) return true;
+                const matchesId = item.id.toLowerCase().includes(searchQuery);
+                const matchesPr = (item.pr || '').toLowerCase().includes(searchQuery);
+                const matchesItemName = item.item.toLowerCase().includes(searchQuery);
+                const matchesDate = item.createdAt.toLowerCase().includes(searchQuery);
+                const matchesLocation = item.locations.some(loc => 
+                    loc.pallet.toLowerCase().includes(searchQuery) || 
+                    loc.zone.toLowerCase().includes(searchQuery) ||
+                    (loc.createdAt && loc.createdAt.toLowerCase().includes(searchQuery))
+                );
+                return matchesId || matchesPr || matchesItemName || matchesDate || matchesLocation;
+            });
+
+            if (filteredInventory.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 bg-slate-900/50 border border-slate-800 rounded-2xl">
+                        <p class="text-slate-400 text-xs sm:text-sm">No matching transactions or items found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            filteredInventory.forEach(({ item, originalIndex }) => {
+                container.appendChild(createCardElement(item, originalIndex));
+            });
+
+            const resultCount = document.getElementById('result-count');
+            if (resultCount) {
+                resultCount.textContent = `Showing ${filteredInventory.length} of ${inventory.length} transactions`;
+            }
+        }
+
+        function createCardElement(item, index) {
+            const rowDiv = document.createElement('div');
+            rowDiv.id = `card-${index}`;
+            rowDiv.className = getCardClass(item);
+            rowDiv.innerHTML = getCardHTML(item, index);
+            return rowDiv;
+        }
+
+        function getCardClass(item) {
+            return `stock-card ${item.isExpanded ? 'expanded-card' : ''}`;
+        }
+
+        function getCardHTML(item, index) {
+            const totalAssigned = totalAbbr(item);
+            const isComplete = totalAssigned === item.qty;
+            const pct = item.qty > 0 ? Math.min(100, Math.round((totalAssigned / item.qty) * 100)) : 0;
+
+            const dateParts = item.createdAt.split(' ');
+            const dateStr = dateParts[0] || '';
+            const timeStr = dateParts[1] || '';
+
+            return `
+                <div class="stock-row ${item.isExpanded ? 'row-expanded' : ''}" onclick="toggleExpand(${index})">
+                    <div class="id-date-cell">
+                        <span class="accent-line"></span>
+                        <div class="id-date-content">
+                            <span class="transaction-id">${item.id}</span>
+                            <span class="date-line">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg>
+                                ${dateStr}
+                            </span>
+                            ${timeStr ? `<span class="date-line"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>${timeStr}</span>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="pr-cell" title="${item.pr || ''}">${item.pr || '—'}</div>
+
+                    <div class="item-cell" title="${item.item}">
+                        <span class="item-title">${item.item}</span>
+                        <span class="item-qty">${item.qty} pcs</span>
+                    </div>
+
+                    <div class="assigned-block">
+                        <div class="assigned-topline">
+                            <span class="assigned-value ${isComplete ? 'complete' : ''}">${totalAssigned}/${item.qty}</span>
+                            <span class="assigned-percent">${pct}%</span>
+                        </div>
+                        <div class="assigned-progress" aria-label="${pct}% assigned">
+                            <span style="width:${pct}%"></span>
+                        </div>
+                    </div>
+
+                    <div class="row-chevron ${item.isExpanded ? 'expanded' : ''}" aria-hidden="true">›</div>
+                </div>
+
+                <div class="accordion-wrapper ${item.isExpanded ? 'expanded' : ''}" onclick="event.stopPropagation()">
+                    <div class="accordion-inner card-content-target">
+                        ${getCardInnerHTML(item, index)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function getCardInnerHTML(item, index) {
+            const totalAssigned = totalAbbr(item);
+            const remaining = item.qty - totalAssigned;
+            const hasPhotos = item.attachedPhotos && item.attachedPhotos.length > 0;
+            const currentZone = item.tempZone || 'A';
+            const displayZoneText = currentZone === 'Loading' ? 'Loading' : `Zone ${currentZone}`;
+
+            return `
+                <div class="mt-4 pt-4 border-t border-slate-800/80 space-y-4">
+                    
+                    ${item.locations.length > 0 ? `
+                        <div class="space-y-2 mb-3">
+                            <div class="assignment-header text-[11px] sm:text-xs text-slate-500 font-semibold px-2">
+                                <span>#Pallet / Date</span>
+                                <span>Zone</span>
+                                <span>Qty</span>
+                                <span class="text-right">Action</span>
+                            </div>
+                            <div class="space-y-1.5">
+                                ${item.locations.map((loc, locIdx) => `
+                                    <div class="assignment-row bg-slate-800/60 rounded-xl text-xs sm:text-sm transition-all hover:bg-slate-800">
+                                        <div class="flex flex-col min-w-0 pr-1">
+                                            <span class="text-slate-200 font-medium truncate">${loc.pallet}</span>
+                                            <span class="text-[10px] text-slate-400 truncate">${loc.createdAt || ''}</span>
+                                        </div>
+                                        <span class="text-slate-200 font-medium bg-slate-900/60 px-2 py-0.5 rounded border border-slate-700/60 text-center truncate">${loc.zone}</span>
+                                        <span class="text-emerald-400 font-semibold truncate text-center">${loc.qty}</span>
+                                        <div class="text-right flex justify-end">
+                                            <button onclick="createRipple(event); confirmRemoveLocation(${index}, ${locIdx})" class="ripple-btn remove-btn text-red-400 hover:text-red-300 bg-red-950/40 hover:bg-red-950 rounded border border-red-900/50 transition-all text-center">Remove</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Custom Dropdown Input Controls Section -->
+                    <div class="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-3 sm:p-4 space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                            <div class="sm:col-span-4 space-y-1">
+                                <label class="text-[11px] font-semibold text-slate-400 block">#Pallet</label>
+                                <input type="text" id="pallet-input-${index}" value="${item.tempPallet || ''}" oninput="updateTemp(${index}, 'pallet', this.value)" onkeydown="handleKeyDown(event, ${index})" class="w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner placeholder-slate-600" placeholder="e.g. P-101">
+                            </div>
+                            
+                            <!-- Custom Dropdown Select Menu -->
+                            <div class="sm:col-span-3 space-y-1 relative">
+                                <label class="text-[11px] font-semibold text-slate-400 block">Zone</label>
+                                <div onclick="toggleCustomDropdown(${index}, event)" class="w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 rounded-xl px-3.5 py-2.5 text-slate-100 text-xs sm:text-sm flex items-center justify-between cursor-pointer select-none transition-all shadow-inner">
+                                    <span id="custom-dropdown-label-${index}" class="font-medium">${displayZoneText}</span>
+                                    <span id="custom-dropdown-arrow-${index}" class="text-slate-400 font-bold transition-transform duration-200">⌄</span>
+                                </div>
+
+                                <!-- Dropdown Menu Popover -->
+                                <div id="custom-dropdown-menu-${index}" class="custom-dropdown-menu absolute left-0 right-0 top-full mt-1.5 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-40 hidden opacity-0 scale-95 overflow-hidden">
+                                    <div class="p-1 space-y-0.5">
+                                        ${validZones.map(zone => {
+                                            const isSelected = currentZone === zone;
+                                            const zoneLabel = zone === 'Loading' ? 'Loading' : `Zone ${zone}`;
+                                            return `
+                                                <button type="button" data-zone="${zone}" onclick="selectCustomZone(${index}, '${zone}', event)" class="w-full text-left px-3.5 py-2.5 text-xs sm:text-sm ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-800/80 hover:text-slate-100'} flex items-center justify-between transition-colors rounded-lg">
+                                                    <span>${zoneLabel}</span>
+                                                    ${isSelected ? '<span class="text-blue-400 text-xs font-bold">✓</span>' : ''}
+                                                </button>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="sm:col-span-5 space-y-1">
+                                <label class="text-[11px] font-semibold text-slate-400 block">Qty</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" id="qty-input-${index}" value="${item.tempQty !== undefined && item.tempQty !== '' ? item.tempQty : (remaining > 0 ? remaining : 0)}" oninput="updateTemp(${index}, 'qty', this.value)" onkeydown="handleKeyDown(event, ${index})" class="w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner font-semibold text-emerald-400">
+                                    <button onclick="createRipple(event); addLocation(${index})" class="ripple-btn px-4 py-2.5 bg-blue-600 hover:bg-blue-500 border border-blue-500/50 rounded-xl flex items-center justify-center text-white font-semibold text-xs sm:text-sm transition-all shadow-md shadow-blue-900/30 whitespace-nowrap flex-shrink-0">
+                                        <span>✓ Save</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attach Multiple Photos & Remove Transaction Actions -->
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800 transition-all hover:border-slate-700 mt-3">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 overflow-hidden w-full">
+                            <input type="file" id="file-input-${index}" accept="image/*" multiple class="hidden" onchange="handlePhotoAttach(event, ${index})">
+                            <button onclick="createRipple(event); document.getElementById('file-input-${index}').click()" class="ripple-btn px-3 py-1.5 rounded-lg border border-slate-600 hover:border-slate-400 bg-slate-800 hover:bg-slate-700 text-slate-200 transition text-xs flex-shrink-0">
+                                📷 Attach Photos
+                            </button>
+                            
+                            <div class="flex flex-wrap items-center gap-2">
+                                ${hasPhotos ? item.attachedPhotos.map((photoSrc, pIdx) => `
+                                    <div class="relative group cursor-pointer" onclick="openImageViewer('${photoSrc}')">
+                                        <img src="${photoSrc}" alt="Thumbnail ${pIdx + 1}" class="w-10 h-10 object-cover rounded-lg border border-slate-700 hover:border-blue-500 transition">
+                                        <button onclick="createRipple(event); event.stopPropagation(); confirmRemoveSinglePhoto(${index}, ${pIdx})" class="ripple-btn absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full w-4 h-4 text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow">✕</button>
+                                    </div>
+                                `).join('') : `
+                                    <span class="text-xs text-slate-400">No photos attached</span>
+                                `}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between sm:justify-end space-x-2 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800 flex-shrink-0">
+                            ${hasPhotos ? `<button onclick="createRipple(event); confirmRemoveAllPhotos(${index})" class="ripple-btn text-red-400 hover:text-red-300 text-xs transition-colors">Clear All</button>` : ''}
+                            <button onclick="createRipple(event); confirmRemoveTransaction(${index})" class="ripple-btn px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/50 text-xs font-semibold transition-all flex items-center space-x-1">
+                                <span>Remove ID</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            `;
+        }
+
+        function totalAbbr(item) {
+            return item.locations.reduce((sum, loc) => sum + parseInt(loc.qty || 0), 0);
+        }
+
+        function toggleExpand(index) {
+            inventory[index].isExpanded = !inventory[index].isExpanded;
+            renderInventory();
+
+            if (inventory[index].isExpanded) {
+                setTimeout(() => {
+                    const card = document.getElementById(`card-${index}`);
+                    if (card) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }, 150);
+            }
+        }
+
+        function updateTemp(index, field, value) {
+            if (!inventory[index].temp) inventory[index].temp = {};
+            inventory[index]['temp' + field.charAt(0).toUpperCase() + field.slice(1)] = value;
+        }
+
+        function addLocation(index) {
+            const item = inventory[index];
+            const pallet = item.tempPallet || '';
+            const zone = item.tempZone || 'A';
+            const totalAssigned = totalAbbr(item);
+            const remaining = item.qty - totalAssigned;
+            const qty = item.tempQty !== undefined && item.tempQty !== '' ? parseInt(item.tempQty) : remaining;
+
+            if (!pallet.trim()) {
+                showAlertModal("Please enter a pallet number.");
+                return;
+            }
+
+            item.locations.push({ 
+                pallet, 
+                zone, 
+                qty: isNaN(qty) ? 0 : qty,
+                createdAt: getCurrentFormattedDateTime()
+            });
+
+            item.tempPallet = '';
+            item.tempZone = 'A';
+            item.tempQty = '';
+
+            renderInventory();
+        }
+
+        function handleKeyDown(event, index) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addLocation(index);
+            }
+        }
+
+        function confirmRemoveLocation(itemIdx, locIdx) {
+            showConfirmDialog(
+                "Remove Pallet Assignment", 
+                `Are you sure you want to remove pallet "${inventory[itemIdx].locations[locIdx].pallet}"?`, 
+                () => {
+                    inventory[itemIdx].locations.splice(locIdx, 1);
+                    renderInventory();
+                }
+            );
+        }
+
+        function confirmRemoveTransaction(index) {
+            showConfirmDialog(
+                "Delete Transaction", 
+                `Are you sure you want to remove ID "${inventory[index].id}" item?`, 
+                () => {
+                    inventory.splice(index, 1);
+                    renderInventory();
+                }
+            );
+        }
+
+        function confirmRemoveSinglePhoto(itemIdx, photoIdx) {
+            showConfirmDialog(
+                "Remove Photo", 
+                "Are you sure you want to remove this photo?", 
+                () => {
+                    inventory[itemIdx].attachedPhotos.splice(photoIdx, 1);
+                    renderInventory();
+                }
+            );
+        }
+
+        function confirmRemoveAllPhotos(index) {
+            showConfirmDialog(
+                "Clear All Photos", 
+                "Are you sure you want to remove all attached photos for this item?", 
+                () => {
+                    inventory[index].attachedPhotos = [];
+                    renderInventory();
+                }
+            );
+        }
+
+        function handlePhotoAttach(event, index) {
+            const files = event.target.files;
+            if (files && files.length > 0) {
+                if (!inventory[index].attachedPhotos) {
+                    inventory[index].attachedPhotos = [];
+                }
+
+                let loadedCount = 0;
+                Array.from(files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        inventory[index].attachedPhotos.push(e.target.result);
+                        loadedCount++;
+                        if (loadedCount === files.length) {
+                            renderInventory();
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+
+        function openNewModal() {
+            modalRows = [{ item: '', qty: '' }];
+            document.getElementById('new-id-input').value = 'FNG-' + (inventory.length + 1);
+            document.getElementById('new-pr-input').value = 'PR-' + Math.floor(1000 + Math.random() * 9000);
+            renderModalItemRows();
+
+            const modal = document.getElementById('new-modal');
+            modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                modal.classList.add('active');
+            });
+        }
+
+        function closeNewModal() {
+            const modal = document.getElementById('new-modal');
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.classList.add('hidden', 'opacity-0', 'pointer-events-none');
+                modal.classList.remove('flex');
+                document.getElementById('new-id-input').value = '';
+                document.getElementById('new-pr-input').value = '';
+                modalRows = [];
+            }, 300);
+        }
+
+        function addModalItemRow() {
+            modalRows.push({ item: '', qty: '' });
+            renderModalItemRows();
+        }
+
+        function confirmRemoveModalItem(index) {
+            if (modalRows.length === 1) {
+                showAlertModal("You must have at least one item.");
+                return;
+            }
+            const itemName = modalRows[index].item.trim() || `Item #${index + 1}`;
+            showConfirmDialog(
+                "Remove Item",
+                `Are you sure you want to remove "${itemName}" from this transaction?`,
+                () => {
+                    modalRows.splice(index, 1);
+                    renderModalItemRows();
+                }
+            );
+        }
+
+        function updateModalRow(index, field, value) {
+            modalRows[index][field] = value;
+        }
+
+        function renderModalItemRows() {
+            const container = document.getElementById('modal-items-container');
+            container.innerHTML = modalRows.map((row, idx) => `
+                <div class="bg-slate-950/50 border border-slate-800 p-3 rounded-xl space-y-2.5 relative group">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-semibold text-slate-400">Item #${idx + 1}</span>
+                        <button onclick="createRipple(event); confirmRemoveModalItem(${idx})" class="ripple-btn text-red-400 hover:text-red-300 text-xs">Remove Item</button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                        <div class="sm:col-span-8">
+                            <input type="text" value="${row.item}" oninput="updateModalRow(${idx}, 'item', this.value)" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-all" placeholder="Item Name (e.g. Aluminum frame)">
+                        </div>
+                        <div class="sm:col-span-4">
+                            <input type="number" value="${row.qty}" oninput="updateModalRow(${idx}, 'qty', this.value)" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-all" placeholder="Qty">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function createNewTransactions() {
+            const id = document.getElementById('new-id-input').value.trim();
+            const pr = document.getElementById('new-pr-input').value.trim();
+
+            if (!id) {
+                showAlertModal("Please enter a Transaction ID.");
+                return;
+            }
+
+            const validRows = modalRows.filter(r => r.item.trim() && !isNaN(parseInt(r.qty)) && parseInt(r.qty) > 0);
+
+            if (validRows.length === 0) {
+                showAlertModal("Please fill out at least one valid item with name and quantity.");
+                return;
+            }
+
+            inventory.forEach(i => i.isExpanded = false);
+
+            const creationTimestamp = getCurrentFormattedDateTime();
+
+            validRows.reverse().forEach(row => {
+                inventory.unshift({
+                    id,
+                    pr,
+                    createdAt: creationTimestamp,
+                    item: row.item.trim(),
+                    qty: parseInt(row.qty),
+                    isExpanded: false,
+                    locations: [],
+                    attachedPhotos: [],
+                    tempZone: 'A'
+                });
+            });
+
+            searchQuery = '';
+            document.getElementById('search-input').value = '';
+
+            if (inventory.length > 0) {
+                inventory[0].isExpanded = true;
+            }
+
+            closeNewModal();
+            renderInventory();
+
+            setTimeout(() => {
+                const card = document.getElementById(`card-0`);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }, 150);
+        }
+
+        renderInventory();
+    </script>
 </body>
 </html>
