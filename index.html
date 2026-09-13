@@ -502,10 +502,34 @@
             height: 44px;
             border-radius: 12px;
             border: 1px solid #2b405f;
-            background: #0b1423;
+            background: linear-gradient(180deg, rgba(14, 26, 44, .98), rgba(8, 18, 32, .98));
             color: var(--text);
-            padding: 0 12px;
+            padding: 0 16px;
             outline: none;
+            box-shadow: inset 0 1px rgba(255,255,255,.025);
+            transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+        input[type="number"] {
+            appearance: textfield;
+            -moz-appearance: textfield;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+            display: none;
+        }
+        input[type="number"].filter-control,
+        input[type="number"].number-control {
+            padding-left: 16px;
+            padding-right: 16px;
+            background: linear-gradient(180deg, rgba(14, 26, 44, .98), rgba(8, 18, 32, .98));
+            border-color: #2b405f;
+            box-shadow: inset 0 1px rgba(255,255,255,.025);
+        }
+        input[type="number"].filter-control::placeholder,
+        input[type="number"].number-control::placeholder {
+            color: #6e82a1;
         }
         select.filter-control,
         .form-select {
@@ -533,9 +557,10 @@
             transition: border-color .2s ease, box-shadow .2s ease;
         }
         .form-select:focus,
-        .filter-control:focus {
+        .filter-control:focus,
+        input[type="number"].number-control:focus {
             border-color: #2a83ff;
-            box-shadow: 0 0 0 3px rgba(42,131,255,.14);
+            box-shadow: 0 0 0 3px rgba(42,131,255,.16), 0 10px 24px rgba(36,183,255,.08), inset 0 1px rgba(255,255,255,.04);
         }
         .filter-control:disabled {
             opacity: .55;
@@ -2667,7 +2692,7 @@
                             <div class="sm:col-span-5 space-y-1">
                                 <label class="text-[11px] font-semibold text-slate-400 block">Qty</label>
                                 <div class="flex items-center space-x-2">
-                                    <input type="number" id="qty-input-${index}" value="${item.tempQty !== undefined && item.tempQty !== '' ? item.tempQty : (remaining > 0 ? remaining : 0)}" oninput="updateTemp(${index}, 'qty', this.value)" onkeydown="handleKeyDown(event, ${index})" class="w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner font-semibold text-emerald-400">
+                                    <input type="number" id="qty-input-${index}" value="${item.tempQty !== undefined && item.tempQty !== '' ? item.tempQty : (remaining > 0 ? remaining : 0)}" oninput="updateTemp(${index}, 'qty', this.value)" onkeydown="handleKeyDown(event, ${index})" class="number-control w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 focus:border-blue-500 rounded-xl px-4 py-2.5 text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner font-semibold text-emerald-400">
                                     <button onclick="createRipple(event); addLocation(${index})" class="ripple-btn px-4 py-2.5 bg-blue-600 hover:bg-blue-500 border border-blue-500/50 rounded-xl flex items-center justify-center text-white font-semibold text-xs sm:text-sm transition-all shadow-md shadow-blue-900/30 whitespace-nowrap flex-shrink-0">
                                         <span>✓ Save</span>
                                     </button>
@@ -3009,7 +3034,7 @@
                             ` : '<div class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-500 text-xs sm:text-sm">Single</div>'}
                         </div>
                         <div class="sm:col-span-3">
-                            <input type="number" value="${row.qty}" oninput="updateModalRow(${idx}, 'qty', this.value)" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-all" placeholder="Qty">
+                            <input type="number" value="${row.qty}" oninput="updateModalRow(${idx}, 'qty', this.value)" class="number-control w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-2 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-all" placeholder="Qty">
                         </div>
                     </div>
                 </div>
