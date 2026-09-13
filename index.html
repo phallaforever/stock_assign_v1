@@ -138,10 +138,18 @@
         .assignment-header,
         .assignment-row {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 72px 42px 72px;
-            gap: 6px;
+            grid-template-columns: minmax(150px, 1fr) minmax(86px, 110px) 64px 84px;
+            column-gap: 10px;
             align-items: center;
             width: 100%;
+        }
+
+        .assignment-header {
+            padding: 0 10px;
+        }
+        .assignment-header span:nth-child(2),
+        .assignment-header span:nth-child(3) {
+            text-align: center;
         }
 
         .assignment-row {
@@ -149,7 +157,7 @@
         }
 
         .remove-btn {
-            width: 72px;
+            width: 84px;
             max-width: 100%;
             padding: 6px 4px;
             font-size: 11px;
@@ -160,6 +168,16 @@
         .custom-dropdown-menu {
             transform-origin: top;
             transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stock-card.dropdown-open,
+        .stock-card.expanded-card.dropdown-open {
+            overflow: visible;
+            position: relative;
+            z-index: 30;
+        }
+        .stock-card.dropdown-open .accordion-wrapper,
+        .stock-card.dropdown-open .accordion-inner {
+            overflow: visible;
         }
 
 
@@ -178,6 +196,11 @@
         }
 
         html { background: var(--page-bg); }
+        html,
+        body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
         body {
             margin: 0;
             background:
@@ -192,6 +215,250 @@
             display: flex;
             flex-direction: column;
             gap: 22px;
+        }
+        .app-layout {
+            display: grid;
+            grid-template-columns: 230px minmax(0, 1fr);
+            gap: 22px;
+            align-items: start;
+            min-width: 0;
+        }
+        .sidebar {
+            position: sticky;
+            top: 22px;
+            border: 1px solid #263853;
+            border-radius: 20px;
+            background: rgba(12, 20, 34, .86);
+            box-shadow: inset 0 1px rgba(255,255,255,.025), 0 18px 40px rgba(0,0,0,.16);
+            padding: 14px;
+        }
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 4px 4px 16px;
+            border-bottom: 1px solid #23334e;
+            margin-bottom: 12px;
+        }
+        .sidebar-logo {
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            box-shadow: 0 10px 20px rgba(36, 183, 255, .16), inset 0 1px rgba(255,255,255,.1);
+        }
+        .sidebar-title {
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .sidebar-subtitle {
+            color: #7f93b1;
+            font-size: 10px;
+            margin-top: 3px;
+        }
+        .nav-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .nav-btn {
+            width: 100%;
+            min-height: 42px;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            color: #9fb1cc;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 12px;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: left;
+            transition: background .2s ease, border-color .2s ease, color .2s ease;
+        }
+        .nav-btn:hover {
+            background: rgba(36, 183, 255, .07);
+            color: #edf3ff;
+        }
+        .nav-btn.active {
+            background: linear-gradient(180deg, rgba(36,183,255,.16), rgba(45,225,174,.1));
+            border-color: rgba(36,183,255,.34);
+            color: #ffffff;
+        }
+        .nav-icon {
+            width: 20px;
+            color: currentColor;
+            text-align: center;
+            flex: 0 0 20px;
+        }
+        .main-panel {
+            min-width: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+        .topbar-nav {
+            display: none;
+            gap: 8px;
+            overflow-x: auto;
+            max-width: 100%;
+            padding: 8px;
+            border: 1px solid #263853;
+            border-radius: 16px;
+            background: rgba(12, 20, 34, .86);
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .topbar-nav::-webkit-scrollbar { display: none; }
+        .topbar-nav .nav-btn {
+            width: auto;
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+        .view-surface {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            min-width: 0;
+            max-width: 100%;
+        }
+        .view-section.hidden {
+            display: none;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .stat-card,
+        .data-panel {
+            min-width: 0;
+            max-width: 100%;
+            border: 1px solid #263853;
+            background: linear-gradient(180deg, rgba(16,28,48,.96), rgba(12,22,38,.96));
+            box-shadow: 0 12px 24px rgba(0,0,0,.12), inset 0 1px rgba(255,255,255,.018);
+        }
+        .stat-card {
+            border-radius: 14px;
+            padding: 16px;
+            min-height: 106px;
+        }
+        .stat-label {
+            color: #8397b7;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+        .stat-value {
+            color: #edf3ff;
+            font-size: 30px;
+            font-weight: 800;
+            line-height: 1;
+            margin-top: 12px;
+        }
+        .stat-note {
+            color: #7f93b1;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        .data-panel {
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 16px;
+            border-bottom: 1px solid #23334e;
+        }
+        .panel-header > * {
+            min-width: 0;
+        }
+        .panel-title {
+            color: #edf3ff;
+            font-size: 15px;
+            font-weight: 800;
+        }
+        .panel-subtitle {
+            color: #7f93b1;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .data-table th,
+        .data-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #1c2a40;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .data-table th {
+            color: #8397b7;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            background: rgba(7, 16, 30, .44);
+        }
+        .data-table td {
+            color: #dce7f8;
+        }
+        .data-table tr:last-child td { border-bottom: 0; }
+        .data-table-wrap {
+            overflow-x: auto;
+            max-width: 100%;
+            -webkit-overflow-scrolling: touch;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 0 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .status-open {
+            color: #ffd35a;
+            background: rgba(255, 198, 42, .1);
+            border-color: rgba(255, 198, 42, .2);
+        }
+        .status-complete {
+            color: #6ff4c8;
+            background: rgba(45, 225, 174, .1);
+            border-color: rgba(45, 225, 174, .2);
+        }
+        .status-over {
+            color: #ff8f9c;
+            background: rgba(239, 68, 68, .1);
+            border-color: rgba(239, 68, 68, .22);
+        }
+        .report-filters {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .filter-control {
+            width: 100%;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid #2b405f;
+            background: #0b1423;
+            color: var(--text);
+            padding: 0 12px;
+            outline: none;
         }
 
         .page-header {
@@ -530,6 +797,11 @@
         /* Laptop / medium screen tuning */
         @media (max-width: 1000px) and (min-width: 641px) {
             .app-shell { width: min(940px, calc(100% - 34px)); }
+            .app-layout { grid-template-columns: 190px minmax(0, 1fr); gap: 16px; }
+            .sidebar-title { font-size: 13px; }
+            .nav-btn { font-size: 12px; padding: 0 10px; }
+            .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .report-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .stock-header { grid-template-columns: 200px 145px minmax(220px, 1fr) 210px; }
             .stock-row { grid-template-columns: 200px 145px minmax(220px, 1fr) 210px 22px; min-height: 104px; padding-top: 11px; padding-bottom: 11px; }
             .transaction-id { font-size: 19px; }
@@ -544,9 +816,36 @@
             }
             .app-shell {
                 width: calc(100% - 24px);
+                max-width: calc(100% - 24px);
                 padding-top: max(16px, env(safe-area-inset-top));
                 gap: 14px;
             }
+            .app-layout {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+            }
+            .sidebar { display: none; }
+            .main-panel { gap: 14px; }
+            .topbar-nav {
+                display: flex;
+                width: 100%;
+            }
+            .topbar-nav .nav-btn {
+                min-height: 38px;
+                padding: 0 10px;
+                font-size: 12px;
+            }
+            .view-surface { gap: 14px; }
+            .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+            .stat-card { min-height: 94px; padding: 13px; }
+            .stat-value { font-size: 24px; margin-top: 10px; }
+            .stat-note { font-size: 10px; }
+            .panel-header { align-items: flex-start; flex-direction: column; padding: 13px; }
+            .data-table { font-size: 12px; min-width: 640px; }
+            .data-table th,
+            .data-table td { padding: 10px 12px; }
+            .report-filters { grid-template-columns: 1fr; gap: 8px; }
             .page-header { align-items: center; gap: 12px; }
             .brand-lockup { gap: 10px; }
             .app-logo { width: 44px; height: 44px; border-radius: 14px; }
@@ -556,6 +855,8 @@
                 gap: 7px;
                 padding: 8px;
                 border-radius: 15px;
+                max-width: 100%;
+                overflow: hidden;
             }
             .action-toolbar .search-input {
                 height: 44px;
@@ -571,12 +872,15 @@
             }
             .toolbar-new-btn {
                 min-height: 44px;
-                padding: 0 11px;
+                width: 44px;
+                padding: 0;
+                justify-content: center;
                 border-radius: 11px;
                 font-size: 12px;
                 gap: 4px;
                 white-space: nowrap;
             }
+            .toolbar-new-btn .new-fng-label { display: none; }
             .toolbar-new-btn .plus-sign { font-size: 18px; }
             .toolbar-export-btn {
                 min-height: 44px;
@@ -647,11 +951,12 @@
             /* Keep existing expanded controls mobile friendly */
             .assignment-header,
             .assignment-row {
-                grid-template-columns: minmax(0, 1fr) 48px 38px 62px;
-                gap: 5px;
+                grid-template-columns: minmax(0, 1fr) 62px 46px 66px;
+                column-gap: 6px;
             }
+            .assignment-header { padding: 0 7px; }
             .assignment-row { padding: 9px 7px; }
-            .remove-btn { width: 62px; font-size: 10px; padding: 6px 2px; }
+            .remove-btn { width: 66px; font-size: 10px; padding: 6px 2px; }
             .list-footer { display: block; text-align: center; font-size: 10px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
             .fast-entry-note { display: none; }
         }
@@ -669,6 +974,21 @@
 </head>
 <body class="min-h-screen antialiased selection:bg-blue-500 selection:text-white pb-12" onclick="closeAllCustomDropdowns(event)">
     <div class="app-shell mx-auto">
+        <div class="app-layout">
+            <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <img src="logo.svg" alt="Stock Received logo" class="sidebar-logo">
+                    <div>
+                        <div class="sidebar-title">Stock Assign</div>
+                        <div class="sidebar-subtitle">Warehouse tracking</div>
+                    </div>
+                </div>
+                <nav id="sidebar-nav" class="nav-list" aria-label="Primary navigation"></nav>
+            </aside>
+
+            <main class="main-panel">
+                <nav id="topbar-nav" class="topbar-nav" aria-label="Mobile navigation"></nav>
+                <section id="view-stock" class="view-section view-surface active">
         
         <!-- Page Heading -->
         <div class="page-header">
@@ -716,6 +1036,13 @@
             <span class="fast-entry-note">Fast Entry Enabled · Tap ✓ or press Enter to save</span>
         </div>
 
+                </section>
+                <section id="view-dashboard" class="view-section view-surface hidden"></section>
+                <section id="view-report" class="view-section view-surface hidden"></section>
+                <section id="view-items" class="view-section view-surface hidden"></section>
+                <section id="view-prs" class="view-section view-surface hidden"></section>
+            </main>
+        </div>
     </div>
 
     <!-- Modal for New Transaction -->
@@ -847,7 +1174,16 @@
         let pendingAction = null;
         let modalRows = [];
         let searchQuery = '';
-        const validZones = ['A', 'B', 'C', 'D', 'Loading'];
+        const validZones = ['A', 'B', 'C', 'D', 'E', 'Loading'];
+        let currentView = 'dashboard';
+        let reportFilters = { pr: '', zone: '', status: '' };
+        const navItems = [
+            { id: 'dashboard', label: 'Dashboard', icon: 'D' },
+            { id: 'stock', label: 'Stock Received', icon: 'S' },
+            { id: 'report', label: 'Report', icon: 'R' },
+            { id: 'items', label: 'Item List', icon: 'I' },
+            { id: 'prs', label: 'PR List', icon: '#' }
+        ];
 
         function cloneDefaultInventory() {
             return JSON.parse(JSON.stringify(defaultInventory));
@@ -897,6 +1233,120 @@
             }
         }
 
+        function escapeHtml(value) {
+            const text = value === undefined || value === null ? '' : String(value);
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function getItemStatus(item) {
+            const remainingQty = item.qty - totalAbbr(item);
+            if (remainingQty === 0) return 'Complete';
+            if (remainingQty < 0) return 'Over-assigned';
+            return 'Open';
+        }
+
+        function getStatusClass(status) {
+            if (status === 'Complete') return 'status-complete';
+            if (status === 'Over-assigned') return 'status-over';
+            return 'status-open';
+        }
+
+        function getInventoryTotals(items = inventory) {
+            const totalQty = items.reduce((sum, item) => sum + Number.parseInt(item.qty || 0, 10), 0);
+            const assignedQty = items.reduce((sum, item) => sum + totalAbbr(item), 0);
+            const remainingQty = totalQty - assignedQty;
+            const uniqueItems = new Set(items.map(item => item.item.toLowerCase().trim()).filter(Boolean)).size;
+            const uniquePrs = new Set(items.map(item => item.pr).filter(Boolean)).size;
+            const openItems = items.filter(item => getItemStatus(item) === 'Open').length;
+            const completeItems = items.filter(item => getItemStatus(item) === 'Complete').length;
+            const overItems = items.filter(item => getItemStatus(item) === 'Over-assigned').length;
+
+            return { totalQty, assignedQty, remainingQty, uniqueItems, uniquePrs, openItems, completeItems, overItems };
+        }
+
+        function getZoneSummary() {
+            const summary = validZones.reduce((acc, zone) => {
+                acc[zone] = 0;
+                return acc;
+            }, {});
+
+            inventory.forEach(item => {
+                item.locations.forEach(loc => {
+                    const zone = loc.zone || 'Unassigned';
+                    summary[zone] = (summary[zone] || 0) + (Number.parseInt(loc.qty || 0, 10) || 0);
+                });
+            });
+
+            return Object.entries(summary).map(([zone, qty]) => ({ zone, qty }));
+        }
+
+        function getItemRows() {
+            const grouped = new Map();
+            inventory.forEach(item => {
+                const key = item.item.toLowerCase().trim();
+                if (!grouped.has(key)) {
+                    grouped.set(key, {
+                        item: item.item,
+                        qty: 0,
+                        assigned: 0,
+                        prs: new Set(),
+                        fngs: new Set()
+                    });
+                }
+                const row = grouped.get(key);
+                row.qty += Number.parseInt(item.qty || 0, 10) || 0;
+                row.assigned += totalAbbr(item);
+                if (item.pr) row.prs.add(item.pr);
+                if (item.id) row.fngs.add(item.id);
+            });
+
+            return Array.from(grouped.values()).map(row => ({
+                item: row.item,
+                qty: row.qty,
+                assigned: row.assigned,
+                remaining: row.qty - row.assigned,
+                prs: Array.from(row.prs).join(', '),
+                fngs: Array.from(row.fngs).join(', '),
+                status: row.qty - row.assigned === 0 ? 'Complete' : row.qty - row.assigned < 0 ? 'Over-assigned' : 'Open'
+            }));
+        }
+
+        function getPrRows() {
+            const grouped = new Map();
+            inventory.forEach(item => {
+                const key = item.pr || 'No PR';
+                if (!grouped.has(key)) {
+                    grouped.set(key, {
+                        pr: key,
+                        items: 0,
+                        qty: 0,
+                        assigned: 0,
+                        createdAt: item.createdAt || ''
+                    });
+                }
+                const row = grouped.get(key);
+                row.items += 1;
+                row.qty += Number.parseInt(item.qty || 0, 10) || 0;
+                row.assigned += totalAbbr(item);
+                if (item.createdAt && item.createdAt < row.createdAt) row.createdAt = item.createdAt;
+            });
+
+            return Array.from(grouped.values()).map(row => ({
+                ...row,
+                remaining: row.qty - row.assigned,
+                status: row.qty - row.assigned === 0 ? 'Complete' : row.qty - row.assigned < 0 ? 'Over-assigned' : 'Open'
+            }));
+        }
+
+        function statusPill(status) {
+            return `<span class="status-pill ${getStatusClass(status)}">${escapeHtml(status)}</span>`;
+        }
+
         // Ripple Effect Click Transition
         function createRipple(event) {
             const button = event.currentTarget;
@@ -930,6 +1380,301 @@
         function handleSearch(query) {
             searchQuery = query.toLowerCase().trim();
             renderInventory();
+        }
+
+        function renderPageHeader(title, subtitle) {
+            return `
+                <div class="page-header">
+                    <div class="brand-lockup">
+                        <img src="logo.svg" alt="Stock Received logo" class="app-logo">
+                        <div class="page-heading">
+                            <h1>${escapeHtml(title)}</h1>
+                            <p>${escapeHtml(subtitle)}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderNav() {
+            const navHtml = navItems.map(item => `
+                <button type="button" onclick="createRipple(event); switchView('${item.id}')" class="ripple-btn nav-btn ${currentView === item.id ? 'active' : ''}">
+                    <span class="nav-icon">${escapeHtml(item.icon)}</span>
+                    <span>${escapeHtml(item.label)}</span>
+                </button>
+            `).join('');
+
+            const sidebarNav = document.getElementById('sidebar-nav');
+            const topbarNav = document.getElementById('topbar-nav');
+            if (sidebarNav) sidebarNav.innerHTML = navHtml;
+            if (topbarNav) topbarNav.innerHTML = navHtml;
+        }
+
+        function switchView(viewId) {
+            currentView = viewId;
+            document.querySelectorAll('.view-section').forEach(section => {
+                section.classList.toggle('hidden', section.id !== `view-${viewId}`);
+                section.classList.toggle('active', section.id === `view-${viewId}`);
+            });
+            renderNav();
+            renderSecondaryViews();
+            if (viewId === 'stock') renderInventory();
+        }
+
+        function statCard(label, value, note = '') {
+            return `
+                <div class="stat-card">
+                    <div class="stat-label">${escapeHtml(label)}</div>
+                    <div class="stat-value">${escapeHtml(value)}</div>
+                    ${note ? `<div class="stat-note">${escapeHtml(note)}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function renderDashboard() {
+            const container = document.getElementById('view-dashboard');
+            if (!container) return;
+
+            const totals = getInventoryTotals();
+            const recentRows = inventory.slice(0, 5).map(item => {
+                const status = getItemStatus(item);
+                return `
+                    <tr>
+                        <td>${escapeHtml(item.id)}</td>
+                        <td>${escapeHtml(item.pr || '-')}</td>
+                        <td>${escapeHtml(item.item)}</td>
+                        <td>${escapeHtml(item.qty)}</td>
+                        <td>${escapeHtml(totalAbbr(item))}</td>
+                        <td>${statusPill(status)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const zoneRows = getZoneSummary().map(row => `
+                <tr>
+                    <td>${escapeHtml(row.zone === 'Loading' ? 'Loading' : `Zone ${row.zone}`)}</td>
+                    <td>${escapeHtml(row.qty)}</td>
+                </tr>
+            `).join('');
+
+            container.innerHTML = `
+                ${renderPageHeader('Dashboard', 'Track stock receiving, assignment progress, and warehouse zones')}
+                <div class="stat-grid">
+                    ${statCard('Transactions', inventory.length, 'Stock received rows')}
+                    ${statCard('Item Types', totals.uniqueItems, 'Unique item names')}
+                    ${statCard('Received Qty', totals.totalQty, 'Total pieces')}
+                    ${statCard('Remaining Qty', totals.remainingQty, 'Still needs assignment')}
+                    ${statCard('Assigned Qty', totals.assignedQty, 'Placed in zones')}
+                    ${statCard('Open Items', totals.openItems, 'Not fully assigned')}
+                    ${statCard('Completed', totals.completeItems, 'Fully assigned')}
+                    ${statCard('Over Assigned', totals.overItems, 'Needs review')}
+                </div>
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Recent Stock Received</div>
+                            <div class="panel-subtitle">Latest transactions by entry order</div>
+                        </div>
+                    </div>
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>ID</th><th>PR#</th><th>Item</th><th>Qty</th><th>Assigned</th><th>Status</th></tr></thead>
+                            <tbody>${recentRows || '<tr><td colspan="6">No stock received yet.</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Zone Usage Summary</div>
+                            <div class="panel-subtitle">Assigned quantity by warehouse zone</div>
+                        </div>
+                    </div>
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>Zone</th><th>Assigned Qty</th></tr></thead>
+                            <tbody>${zoneRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getReportRows() {
+            return inventory.filter(item => {
+                const status = getItemStatus(item);
+                const zoneMatch = !reportFilters.zone || item.locations.some(loc => loc.zone === reportFilters.zone);
+                const prMatch = !reportFilters.pr || (item.pr || '') === reportFilters.pr;
+                const statusMatch = !reportFilters.status || status === reportFilters.status;
+                return zoneMatch && prMatch && statusMatch;
+            });
+        }
+
+        function updateReportFilter(field, value) {
+            reportFilters[field] = value;
+            renderReport();
+        }
+
+        function exportReportView() {
+            const rows = getReportRows().map((item, originalIndex) => ({ item, originalIndex }));
+            if (rows.length === 0) {
+                showAlertModal('There are no report rows to export.', 'No Report Data');
+                return;
+            }
+            showConfirmDialog(
+                'Export Report',
+                `Export ${rows.length} report row${rows.length === 1 ? '' : 's'} as a CSV file?`,
+                () => downloadReportCsv(rows),
+                { confirmText: 'Export', variant: 'primary' }
+            );
+        }
+
+        function renderReport() {
+            const container = document.getElementById('view-report');
+            if (!container) return;
+
+            const prOptions = Array.from(new Set(inventory.map(item => item.pr).filter(Boolean))).sort();
+            const rows = getReportRows();
+            const totals = getInventoryTotals(rows);
+            const rowHtml = rows.map(item => {
+                const status = getItemStatus(item);
+                return `
+                    <tr>
+                        <td>${escapeHtml(item.id)}</td>
+                        <td>${escapeHtml(item.pr || '-')}</td>
+                        <td>${escapeHtml(item.createdAt)}</td>
+                        <td>${escapeHtml(item.item)}</td>
+                        <td>${escapeHtml(item.qty)}</td>
+                        <td>${escapeHtml(totalAbbr(item))}</td>
+                        <td>${escapeHtml(item.qty - totalAbbr(item))}</td>
+                        <td>${statusPill(status)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                ${renderPageHeader('Report', 'Filter stock receiving records and export CSV reports')}
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Report Filters</div>
+                            <div class="panel-subtitle">${rows.length} matching transaction${rows.length === 1 ? '' : 's'}</div>
+                        </div>
+                        <button onclick="createRipple(event); exportReportView()" class="ripple-btn toolbar-export-btn" aria-label="Export filtered report">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+                            <span>Export Report</span>
+                        </button>
+                    </div>
+                    <div class="p-4 report-filters">
+                        <select class="filter-control" onchange="updateReportFilter('pr', this.value)">
+                            <option value="">All PR#</option>
+                            ${prOptions.map(pr => `<option value="${escapeHtml(pr)}" ${reportFilters.pr === pr ? 'selected' : ''}>${escapeHtml(pr)}</option>`).join('')}
+                        </select>
+                        <select class="filter-control" onchange="updateReportFilter('zone', this.value)">
+                            <option value="">All Zones</option>
+                            ${validZones.map(zone => `<option value="${escapeHtml(zone)}" ${reportFilters.zone === zone ? 'selected' : ''}>${escapeHtml(zone === 'Loading' ? 'Loading' : `Zone ${zone}`)}</option>`).join('')}
+                        </select>
+                        <select class="filter-control" onchange="updateReportFilter('status', this.value)">
+                            <option value="">All Status</option>
+                            ${['Open', 'Complete', 'Over-assigned'].map(status => `<option value="${escapeHtml(status)}" ${reportFilters.status === status ? 'selected' : ''}>${escapeHtml(status)}</option>`).join('')}
+                        </select>
+                        <button onclick="createRipple(event); reportFilters = { pr: '', zone: '', status: '' }; renderReport()" class="ripple-btn filter-control">Reset Filters</button>
+                    </div>
+                </div>
+                <div class="stat-grid">
+                    ${statCard('Rows', rows.length, 'Filtered records')}
+                    ${statCard('Received Qty', totals.totalQty)}
+                    ${statCard('Assigned Qty', totals.assignedQty)}
+                    ${statCard('Remaining Qty', totals.remainingQty)}
+                </div>
+                <div class="data-panel">
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>ID</th><th>PR#</th><th>Date</th><th>Item</th><th>Qty</th><th>Assigned</th><th>Remain</th><th>Status</th></tr></thead>
+                            <tbody>${rowHtml || '<tr><td colspan="8">No report data for these filters.</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderItemList() {
+            const container = document.getElementById('view-items');
+            if (!container) return;
+
+            const rows = getItemRows();
+            const rowHtml = rows.map(row => `
+                <tr>
+                    <td>${escapeHtml(row.item)}</td>
+                    <td>${escapeHtml(row.qty)}</td>
+                    <td>${escapeHtml(row.assigned)}</td>
+                    <td>${escapeHtml(row.remaining)}</td>
+                    <td>${escapeHtml(row.prs || '-')}</td>
+                    <td>${escapeHtml(row.fngs || '-')}</td>
+                    <td>${statusPill(row.status)}</td>
+                </tr>
+            `).join('');
+
+            container.innerHTML = `
+                ${renderPageHeader('Item List', 'Track each item across received, assigned, and remaining quantities')}
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Items</div>
+                            <div class="panel-subtitle">${rows.length} unique item${rows.length === 1 ? '' : 's'}</div>
+                        </div>
+                    </div>
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>Item</th><th>Received</th><th>Assigned</th><th>Remaining</th><th>PR#</th><th>FNG</th><th>Status</th></tr></thead>
+                            <tbody>${rowHtml || '<tr><td colspan="7">No items yet.</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPrList() {
+            const container = document.getElementById('view-prs');
+            if (!container) return;
+
+            const rows = getPrRows();
+            const rowHtml = rows.map(row => `
+                <tr>
+                    <td>${escapeHtml(row.pr)}</td>
+                    <td>${escapeHtml(row.items)}</td>
+                    <td>${escapeHtml(row.qty)}</td>
+                    <td>${escapeHtml(row.assigned)}</td>
+                    <td>${escapeHtml(row.remaining)}</td>
+                    <td>${escapeHtml(row.createdAt)}</td>
+                    <td>${statusPill(row.status)}</td>
+                </tr>
+            `).join('');
+
+            container.innerHTML = `
+                ${renderPageHeader('PR List', 'Group received stock by purchase request number')}
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Purchase Requests</div>
+                            <div class="panel-subtitle">${rows.length} PR record${rows.length === 1 ? '' : 's'}</div>
+                        </div>
+                    </div>
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>PR#</th><th>Items</th><th>Received</th><th>Assigned</th><th>Remaining</th><th>First Date</th><th>Status</th></tr></thead>
+                            <tbody>${rowHtml || '<tr><td colspan="7">No PR records yet.</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSecondaryViews() {
+            renderDashboard();
+            renderReport();
+            renderItemList();
+            renderPrList();
         }
 
         function getFilteredInventory() {
@@ -1113,6 +1858,7 @@
             event.stopPropagation();
             const menu = document.getElementById(`custom-dropdown-menu-${index}`);
             const arrow = document.getElementById(`custom-dropdown-arrow-${index}`);
+            const card = document.getElementById(`card-${index}`);
             
             // Close all other dropdowns first
             document.querySelectorAll('[id^="custom-dropdown-menu-"]').forEach(m => {
@@ -1125,15 +1871,22 @@
                     a.classList.remove('rotate-180', 'text-blue-400');
                 }
             });
+            document.querySelectorAll('.stock-card.dropdown-open').forEach(openCard => {
+                if (openCard.id !== `card-${index}`) {
+                    openCard.classList.remove('dropdown-open');
+                }
+            });
 
             const isHidden = menu.classList.contains('hidden');
             if (isHidden) {
+                card?.classList.add('dropdown-open');
                 menu.classList.remove('hidden');
                 requestAnimationFrame(() => {
                     menu.classList.remove('opacity-0', 'scale-95');
                     arrow.classList.add('rotate-180', 'text-blue-400');
                 });
             } else {
+                card?.classList.remove('dropdown-open');
                 menu.classList.add('opacity-0', 'scale-95');
                 arrow.classList.remove('rotate-180', 'text-blue-400');
                 setTimeout(() => {
@@ -1153,12 +1906,16 @@
 
             const menu = document.getElementById(`custom-dropdown-menu-${index}`);
             const arrow = document.getElementById(`custom-dropdown-arrow-${index}`);
+            const card = document.getElementById(`card-${index}`);
             if (menu) {
                 menu.classList.add('opacity-0', 'scale-95');
                 setTimeout(() => menu.classList.add('hidden'), 200);
             }
             if (arrow) {
                 arrow.classList.remove('rotate-180', 'text-blue-400');
+            }
+            if (card) {
+                card.classList.remove('dropdown-open');
             }
 
             // Highlight selected option in list
@@ -1179,6 +1936,9 @@
             });
             document.querySelectorAll('[id^="custom-dropdown-arrow-"]').forEach(arrow => {
                 arrow.classList.remove('rotate-180', 'text-blue-400');
+            });
+            document.querySelectorAll('.stock-card.dropdown-open').forEach(card => {
+                card.classList.remove('dropdown-open');
             });
         }
 
@@ -1446,6 +2206,7 @@
             item.tempQty = '';
 
             saveInventory();
+            renderSecondaryViews();
             renderInventory();
         }
 
@@ -1463,6 +2224,7 @@
                 () => {
                     inventory[itemIdx].locations.splice(locIdx, 1);
                     saveInventory();
+                    renderSecondaryViews();
                     renderInventory();
                 }
             );
@@ -1475,6 +2237,7 @@
                 () => {
                     inventory.splice(index, 1);
                     saveInventory();
+                    renderSecondaryViews();
                     renderInventory();
                 }
             );
@@ -1487,6 +2250,7 @@
                 () => {
                     inventory[itemIdx].attachedPhotos.splice(photoIdx, 1);
                     saveInventory();
+                    renderSecondaryViews();
                     renderInventory();
                 }
             );
@@ -1499,6 +2263,7 @@
                 () => {
                     inventory[index].attachedPhotos = [];
                     saveInventory();
+                    renderSecondaryViews();
                     renderInventory();
                 }
             );
@@ -1519,6 +2284,7 @@
                         loadedCount++;
                         if (loadedCount === files.length) {
                             saveInventory();
+                            renderSecondaryViews();
                             renderInventory();
                         }
                     };
@@ -1640,6 +2406,7 @@
             }
 
             saveInventory();
+            renderSecondaryViews();
             closeNewModal();
             renderInventory();
 
@@ -1651,7 +2418,10 @@
             }, 150);
         }
 
+        renderNav();
+        renderSecondaryViews();
         renderInventory();
+        switchView(currentView);
     </script>
 </body>
 </html>
