@@ -774,7 +774,7 @@
     <!-- Confirmation Popup Modal for Deletion -->
     <div id="confirm-modal" class="custom-modal fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
         <div class="custom-modal-content bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 w-full max-w-sm shadow-2xl space-y-4 text-center">
-            <div class="w-12 h-12 rounded-full bg-red-950/60 border border-red-900/60 flex items-center justify-center mx-auto text-red-400 font-bold text-lg">!</div>
+            <div id="confirm-icon" class="w-12 h-12 rounded-full bg-red-950/60 border border-red-900/60 flex items-center justify-center mx-auto text-red-400 font-bold text-lg">!</div>
             <div class="space-y-1">
                 <h3 id="confirm-title" class="text-base font-bold text-slate-100">Confirm Deletion</h3>
                 <p id="confirm-message" class="text-xs text-slate-400 leading-relaxed">Are you sure you want to remove this item?</p>
@@ -795,7 +795,8 @@
     </div>
 
     <script>
-        let inventory = [
+        const INVENTORY_STORAGE_KEY = 'stock-received-inventory-v1';
+        const defaultInventory = [
             {
                 id: 'FNG-1',
                 pr: 'PR-8821',
@@ -842,10 +843,59 @@
             }
         ];
 
+        let inventory = loadInventory();
         let pendingAction = null;
         let modalRows = [];
         let searchQuery = '';
         const validZones = ['A', 'B', 'C', 'D', 'Loading'];
+
+        function cloneDefaultInventory() {
+            return JSON.parse(JSON.stringify(defaultInventory));
+        }
+
+        function normalizeInventory(savedInventory) {
+            if (!Array.isArray(savedInventory)) return cloneDefaultInventory();
+
+            return savedInventory.map((item, index) => ({
+                id: item.id || `FNG-${index + 1}`,
+                pr: item.pr || '',
+                createdAt: item.createdAt || getCurrentFormattedDateTime(),
+                item: item.item || 'Untitled item',
+                qty: Number.parseInt(item.qty, 10) || 0,
+                isExpanded: Boolean(item.isExpanded),
+                locations: Array.isArray(item.locations) ? item.locations.map(loc => ({
+                    pallet: loc.pallet || '',
+                    zone: loc.zone || 'A',
+                    qty: Number.parseInt(loc.qty, 10) || 0,
+                    createdAt: loc.createdAt || ''
+                })) : [],
+                attachedPhotos: Array.isArray(item.attachedPhotos) ? item.attachedPhotos : [],
+                tempPallet: item.tempPallet || '',
+                tempZone: item.tempZone || 'A',
+                tempQty: item.tempQty || ''
+            }));
+        }
+
+        function loadInventory() {
+            try {
+                const savedInventory = localStorage.getItem(INVENTORY_STORAGE_KEY);
+                if (!savedInventory) return cloneDefaultInventory();
+                return normalizeInventory(JSON.parse(savedInventory));
+            } catch (error) {
+                console.warn('Unable to load saved inventory:', error);
+                return cloneDefaultInventory();
+            }
+        }
+
+        function saveInventory() {
+            try {
+                localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(inventory));
+                return true;
+            } catch (error) {
+                console.warn('Unable to save inventory:', error);
+                return false;
+            }
+        }
 
         // Ripple Effect Click Transition
         function createRipple(event) {
@@ -915,13 +965,7 @@
             URL.revokeObjectURL(url);
         }
 
-        function exportReport() {
-            const rows = getFilteredInventory();
-            if (rows.length === 0) {
-                showAlertModal("There are no transactions to export.", "No Report Data");
-                return;
-            }
-
+        function downloadReportCsv(rows) {
             const headers = [
                 'Transaction ID',
                 'PR#',
@@ -967,6 +1011,22 @@
             downloadTextFile(`stock-received-report-${scope}-${filenameDate}.csv`, csvRows.join('\r\n'), 'text/csv;charset=utf-8');
         }
 
+        function exportReport() {
+            const rows = getFilteredInventory();
+            if (rows.length === 0) {
+                showAlertModal("There are no transactions to export.", "No Report Data");
+                return;
+            }
+
+            const reportScope = searchQuery ? 'filtered report' : 'full report';
+            showConfirmDialog(
+                "Export Report",
+                `Export ${rows.length} transaction${rows.length === 1 ? '' : 's'} in the ${reportScope} as a CSV file?`,
+                () => downloadReportCsv(rows),
+                { confirmText: 'Export', variant: 'primary' }
+            );
+        }
+
         function showAlertModal(message, title = "Required Field") {
             document.getElementById('alert-title').innerText = title;
             document.getElementById('alert-message').innerText = message;
@@ -988,10 +1048,22 @@
             }, 300);
         }
 
-        function showConfirmDialog(title, message, onConfirm) {
+        function showConfirmDialog(title, message, onConfirm, options = {}) {
             document.getElementById('confirm-title').innerText = title;
             document.getElementById('confirm-message').innerText = message;
             pendingAction = onConfirm;
+
+            const confirmButton = document.getElementById('confirm-yes-btn');
+            const confirmIcon = document.getElementById('confirm-icon');
+            const isPrimary = options.variant === 'primary';
+            confirmButton.innerText = options.confirmText || 'Delete';
+            confirmButton.className = isPrimary
+                ? 'ripple-btn flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-blue-950/40'
+                : 'ripple-btn flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-red-950/40';
+            confirmIcon.innerText = isPrimary ? 'CSV' : '!';
+            confirmIcon.className = isPrimary
+                ? 'w-12 h-12 rounded-full bg-blue-950/60 border border-blue-900/60 flex items-center justify-center mx-auto text-blue-300 font-bold text-lg'
+                : 'w-12 h-12 rounded-full bg-red-950/60 border border-red-900/60 flex items-center justify-center mx-auto text-red-400 font-bold text-lg';
 
             const modal = document.getElementById('confirm-modal');
             modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
@@ -1000,7 +1072,7 @@
                 modal.classList.add('active');
             });
 
-            document.getElementById('confirm-yes-btn').onclick = function(e) {
+            confirmButton.onclick = function(e) {
                 createRipple(e);
                 if (pendingAction) pendingAction();
                 closeConfirmModal();
@@ -1324,6 +1396,7 @@
             const isExpanded = !inventory[index].isExpanded;
 
             inventory[index].isExpanded = isExpanded;
+            saveInventory();
             card.classList.toggle('expanded-card', isExpanded);
             row?.classList.toggle('row-expanded', isExpanded);
             chevron?.classList.toggle('expanded', isExpanded);
@@ -1372,6 +1445,7 @@
             item.tempZone = 'A';
             item.tempQty = '';
 
+            saveInventory();
             renderInventory();
         }
 
@@ -1388,6 +1462,7 @@
                 `Are you sure you want to remove pallet "${inventory[itemIdx].locations[locIdx].pallet}"?`, 
                 () => {
                     inventory[itemIdx].locations.splice(locIdx, 1);
+                    saveInventory();
                     renderInventory();
                 }
             );
@@ -1399,6 +1474,7 @@
                 `Are you sure you want to remove ID "${inventory[index].id}" item?`, 
                 () => {
                     inventory.splice(index, 1);
+                    saveInventory();
                     renderInventory();
                 }
             );
@@ -1410,6 +1486,7 @@
                 "Are you sure you want to remove this photo?", 
                 () => {
                     inventory[itemIdx].attachedPhotos.splice(photoIdx, 1);
+                    saveInventory();
                     renderInventory();
                 }
             );
@@ -1421,6 +1498,7 @@
                 "Are you sure you want to remove all attached photos for this item?", 
                 () => {
                     inventory[index].attachedPhotos = [];
+                    saveInventory();
                     renderInventory();
                 }
             );
@@ -1440,6 +1518,7 @@
                         inventory[index].attachedPhotos.push(e.target.result);
                         loadedCount++;
                         if (loadedCount === files.length) {
+                            saveInventory();
                             renderInventory();
                         }
                     };
@@ -1560,6 +1639,7 @@
                 inventory[0].isExpanded = true;
             }
 
+            saveInventory();
             closeNewModal();
             renderInventory();
 
