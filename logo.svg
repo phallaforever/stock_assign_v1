@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Stock Received logo</title>
+  <desc id="desc">Warehouse box logo for the stock receiving app</desc>
+  <defs>
+    <linearGradient id="bg" x1="18" y1="12" x2="110" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1677ff"/>
+      <stop offset=".55" stop-color="#101b2e"/>
+      <stop offset="1" stop-color="#07101e"/>
+    </linearGradient>
+    <linearGradient id="box" x1="31" y1="34" x2="97" y2="99" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2de1ae"/>
+      <stop offset="1" stop-color="#24b7ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="url(#bg)"/>
+  <path d="M31 48.5 64 31l33 17.5v38.9L64 105 31 87.4Z" fill="#0b1220" stroke="url(#box)" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M31 48.5 64 66l33-17.5M64 66v39" fill="none" stroke="#edf3ff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>
+  <path d="M48 40.5 81 58" fill="none" stroke="#2de1ae" stroke-width="6" stroke-linecap="round" opacity=".9"/>
+  <path d="M43 82h19M43 93h12" fill="none" stroke="#2de1ae" stroke-width="6" stroke-linecap="round"/>
+</svg>

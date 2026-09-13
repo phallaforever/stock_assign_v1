@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Stock Received - Multi-Location Fast Entry</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="shortcut icon" href="favicon.svg">
+    <link rel="apple-touch-icon" href="favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
@@ -179,6 +182,19 @@
             justify-content: space-between;
             align-items: flex-start;
             gap: 24px;
+        }
+        .brand-lockup {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+        .app-logo {
+            width: 54px;
+            height: 54px;
+            flex: 0 0 auto;
+            border-radius: 16px;
+            box-shadow: 0 14px 28px rgba(36, 183, 255, .18), inset 0 1px rgba(255,255,255,.1);
         }
         .page-heading h1 {
             margin: 0;
@@ -473,6 +489,8 @@
                 gap: 14px;
             }
             .page-header { align-items: center; gap: 12px; }
+            .brand-lockup { gap: 10px; }
+            .app-logo { width: 44px; height: 44px; border-radius: 14px; }
             .page-heading h1 { font-size: 22px; }
             .page-heading p { display: none; }
             .action-toolbar {
@@ -586,9 +604,12 @@
         
         <!-- Page Heading -->
         <div class="page-header">
-            <div class="page-heading">
-                <h1>Stock Received</h1>
-                <p>View and manage all received items</p>
+            <div class="brand-lockup">
+                <img src="logo.svg" alt="Stock Received logo" class="app-logo">
+                <div class="page-heading">
+                    <h1>Stock Received</h1>
+                    <p>View and manage all received items</p>
+                </div>
             </div>
         </div>
 
