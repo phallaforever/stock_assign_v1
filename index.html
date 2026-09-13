@@ -26,7 +26,7 @@
         .accordion-wrapper {
             display: grid;
             grid-template-rows: 0fr;
-            transition: grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: grid-template-rows 0.48s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease;
             opacity: 0;
             will-change: grid-template-rows, opacity;
         }
@@ -36,7 +36,14 @@
         }
         .accordion-inner {
             overflow: hidden;
-            transform: translateZ(0);
+            opacity: 0;
+            transform: translateY(-8px) translateZ(0);
+            transition: opacity 0.26s ease, transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+            will-change: opacity, transform;
+        }
+        .accordion-wrapper.expanded .accordion-inner {
+            opacity: 1;
+            transform: translateY(0) translateZ(0);
         }
 
         /* Modal Smooth Scale & Fade */
@@ -89,6 +96,16 @@
         }
         .active-glow {
             animation: pulseGlow 3s infinite;
+        }
+        @keyframes cardClickTransition {
+            0% {
+                transform: scale(0.992);
+                border-color: rgba(36, 183, 255, .88);
+                box-shadow: 0 10px 22px rgba(0,0,0,.16), 0 0 0 1px rgba(36,183,255,.18), inset 0 1px rgba(255,255,255,.04);
+            }
+            100% {
+                transform: scale(1);
+            }
         }
 
         /* Stock Header & Item Row CSS Grid Layout */
@@ -254,6 +271,34 @@
         }
         .toolbar-new-btn:hover { filter: brightness(1.05); }
         .toolbar-new-btn .plus-sign { font-size: 22px; font-weight: 500; }
+        .toolbar-export-btn {
+            flex: 0 0 auto;
+            min-height: 48px;
+            padding: 0 16px;
+            border-radius: 12px;
+            background: #0b1423;
+            border: 1px solid #2b405f;
+            color: #d9e7ff;
+            font-size: 14px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: border-color .2s, background .2s, color .2s;
+        }
+        .toolbar-export-btn:hover {
+            background: #111d31;
+            border-color: #24b7ff;
+            color: #ffffff;
+        }
+        .toolbar-export-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            flex: 0 0 auto;
+        }
 
         .search-wrap { position: relative; }
         .search-input {
@@ -316,12 +361,24 @@
             border-radius: 22px;
             overflow: hidden;
             box-shadow: 0 12px 24px rgba(0,0,0,.12), inset 0 1px rgba(255,255,255,.018);
-            transition: border-color .2s, transform .2s, box-shadow .2s;
+            transform: translateZ(0);
+            transition: border-color .22s ease, transform .22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .22s ease, background .22s ease;
+            will-change: transform, box-shadow, border-color;
         }
-        .stock-card:hover { border-color: #334a6d; }
+        .stock-card:hover {
+            border-color: #334a6d;
+            transform: translateY(-1px);
+            box-shadow: 0 15px 28px rgba(0,0,0,.16), inset 0 1px rgba(255,255,255,.024);
+        }
+        .stock-card.card-click-transition {
+            animation: cardClickTransition .28s cubic-bezier(0.16, 1, 0.3, 1);
+        }
         .stock-card.expanded-card {
             border-color: rgba(46, 128, 255, .7);
             box-shadow: 0 16px 34px rgba(0,0,0,.19), 0 0 0 1px rgba(22,119,255,.08);
+        }
+        .stock-card.expanded-card:hover {
+            box-shadow: 0 18px 38px rgba(0,0,0,.22), 0 0 0 1px rgba(22,119,255,.12);
         }
 
         .stock-row {
@@ -334,7 +391,9 @@
             cursor: pointer;
             position: relative;
             user-select: none;
+            transition: background .2s ease;
         }
+        .stock-row:active { background: rgba(36, 183, 255, .035); }
         .id-date-cell {
             height: 100%;
             display: flex;
@@ -519,6 +578,15 @@
                 white-space: nowrap;
             }
             .toolbar-new-btn .plus-sign { font-size: 18px; }
+            .toolbar-export-btn {
+                min-height: 44px;
+                width: 44px;
+                padding: 0;
+                justify-content: center;
+                border-radius: 11px;
+            }
+            .toolbar-export-btn span { display: none; }
+            .toolbar-export-btn svg { width: 18px; height: 18px; }
 
             .stock-header { display: none; }
             #inventory-list { gap: 11px; }
@@ -622,6 +690,10 @@
             <button onclick="createRipple(event); openNewModal()" class="ripple-btn new-transaction-btn toolbar-new-btn" aria-label="Create new FNG">
                 <span class="plus-sign">＋</span>
                 <span class="new-fng-label">New FNG</span>
+            </button>
+            <button onclick="createRipple(event); exportReport()" class="ripple-btn toolbar-export-btn" aria-label="Export report as CSV" title="Export Report">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+                <span>Export Report</span>
             </button>
         </div>
 
@@ -810,6 +882,91 @@
             renderInventory();
         }
 
+        function getFilteredInventory() {
+            return inventory.map((item, originalIndex) => ({ item, originalIndex })).filter(({ item }) => {
+                if (!searchQuery) return true;
+                const matchesId = item.id.toLowerCase().includes(searchQuery);
+                const matchesPr = (item.pr || '').toLowerCase().includes(searchQuery);
+                const matchesItemName = item.item.toLowerCase().includes(searchQuery);
+                const matchesDate = item.createdAt.toLowerCase().includes(searchQuery);
+                const matchesLocation = item.locations.some(loc =>
+                    loc.pallet.toLowerCase().includes(searchQuery) ||
+                    loc.zone.toLowerCase().includes(searchQuery) ||
+                    (loc.createdAt && loc.createdAt.toLowerCase().includes(searchQuery))
+                );
+                return matchesId || matchesPr || matchesItemName || matchesDate || matchesLocation;
+            });
+        }
+
+        function csvCell(value) {
+            const text = value === undefined || value === null ? '' : String(value);
+            return `"${text.replace(/"/g, '""')}"`;
+        }
+
+        function downloadTextFile(filename, content, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportReport() {
+            const rows = getFilteredInventory();
+            if (rows.length === 0) {
+                showAlertModal("There are no transactions to export.", "No Report Data");
+                return;
+            }
+
+            const headers = [
+                'Transaction ID',
+                'PR#',
+                'Created At',
+                'Item',
+                'Item Qty',
+                'Assigned Qty',
+                'Remaining Qty',
+                'Status',
+                'Pallet',
+                'Zone',
+                'Pallet Qty',
+                'Assigned At'
+            ];
+
+            const csvRows = [headers.map(csvCell).join(',')];
+            rows.forEach(({ item }) => {
+                const assignedQty = totalAbbr(item);
+                const remainingQty = item.qty - assignedQty;
+                const status = remainingQty === 0 ? 'Complete' : remainingQty > 0 ? 'Open' : 'Over-assigned';
+                const locations = item.locations.length > 0 ? item.locations : [{ pallet: '', zone: '', qty: '', createdAt: '' }];
+
+                locations.forEach(loc => {
+                    csvRows.push([
+                        item.id,
+                        item.pr || '',
+                        item.createdAt,
+                        item.item,
+                        item.qty,
+                        assignedQty,
+                        remainingQty,
+                        status,
+                        loc.pallet,
+                        loc.zone,
+                        loc.qty,
+                        loc.createdAt || ''
+                    ].map(csvCell).join(','));
+                });
+            });
+
+            const filenameDate = new Date().toISOString().slice(0, 10);
+            const scope = searchQuery ? 'filtered' : 'all';
+            downloadTextFile(`stock-received-report-${scope}-${filenameDate}.csv`, csvRows.join('\r\n'), 'text/csv;charset=utf-8');
+        }
+
         function showAlertModal(message, title = "Required Field") {
             document.getElementById('alert-title').innerText = title;
             document.getElementById('alert-message').innerText = message;
@@ -955,20 +1112,12 @@
 
         function renderInventory() {
             const container = document.getElementById('inventory-list');
-            
-            const filteredInventory = inventory.map((item, originalIndex) => ({ item, originalIndex })).filter(({ item }) => {
-                if (!searchQuery) return true;
-                const matchesId = item.id.toLowerCase().includes(searchQuery);
-                const matchesPr = (item.pr || '').toLowerCase().includes(searchQuery);
-                const matchesItemName = item.item.toLowerCase().includes(searchQuery);
-                const matchesDate = item.createdAt.toLowerCase().includes(searchQuery);
-                const matchesLocation = item.locations.some(loc => 
-                    loc.pallet.toLowerCase().includes(searchQuery) || 
-                    loc.zone.toLowerCase().includes(searchQuery) ||
-                    (loc.createdAt && loc.createdAt.toLowerCase().includes(searchQuery))
-                );
-                return matchesId || matchesPr || matchesItemName || matchesDate || matchesLocation;
-            });
+            const filteredInventory = getFilteredInventory();
+
+            const resultCount = document.getElementById('result-count');
+            if (resultCount) {
+                resultCount.textContent = `Showing ${filteredInventory.length} of ${inventory.length} transactions`;
+            }
 
             if (filteredInventory.length === 0) {
                 container.innerHTML = `
@@ -983,22 +1132,17 @@
             filteredInventory.forEach(({ item, originalIndex }) => {
                 container.appendChild(createCardElement(item, originalIndex));
             });
-
-            const resultCount = document.getElementById('result-count');
-            if (resultCount) {
-                resultCount.textContent = `Showing ${filteredInventory.length} of ${inventory.length} transactions`;
-            }
         }
 
         function createCardElement(item, index) {
             const rowDiv = document.createElement('div');
             rowDiv.id = `card-${index}`;
-            rowDiv.className = getCardClass(item);
+            rowDiv.className = getCardClass(item, index);
             rowDiv.innerHTML = getCardHTML(item, index);
             return rowDiv;
         }
 
-        function getCardClass(item) {
+        function getCardClass(item, index) {
             return `stock-card ${item.isExpanded ? 'expanded-card' : ''}`;
         }
 
@@ -1171,15 +1315,30 @@
         }
 
         function toggleExpand(index) {
-            inventory[index].isExpanded = !inventory[index].isExpanded;
-            renderInventory();
+            const card = document.getElementById(`card-${index}`);
+            if (!card) return;
 
-            if (inventory[index].isExpanded) {
+            const row = card.querySelector('.stock-row');
+            const chevron = card.querySelector('.row-chevron');
+            const accordion = card.querySelector('.accordion-wrapper');
+            const isExpanded = !inventory[index].isExpanded;
+
+            inventory[index].isExpanded = isExpanded;
+            card.classList.toggle('expanded-card', isExpanded);
+            row?.classList.toggle('row-expanded', isExpanded);
+            chevron?.classList.toggle('expanded', isExpanded);
+            accordion?.classList.toggle('expanded', isExpanded);
+
+            card.classList.remove('card-click-transition');
+            void card.offsetWidth;
+            card.classList.add('card-click-transition');
+            setTimeout(() => {
+                card.classList.remove('card-click-transition');
+            }, 300);
+
+            if (isExpanded) {
                 setTimeout(() => {
-                    const card = document.getElementById(`card-${index}`);
-                    if (card) {
-                        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }, 150);
             }
         }
