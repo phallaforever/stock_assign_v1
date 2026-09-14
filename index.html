@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock Received - Multi-Location Fast Entry</title>
+    <title>Stock Assign | Warehouse Operations</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="shortcut icon" href="favicon.svg">
     <link rel="apple-touch-icon" href="favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
         
         * {
             box-sizing: border-box;
         }
 
+        .hidden { display: none !important; }
+
         body {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Inter', Arial, sans-serif;
             background-color: #0b0f19;
             color: #f8fafc;
             -webkit-tap-highlight-color: transparent;
@@ -48,15 +50,36 @@
 
         /* Modal Smooth Scale & Fade */
         .custom-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(2, 6, 23, .82);
+            backdrop-filter: blur(8px);
+            opacity: 0;
+            pointer-events: none;
             transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        .custom-modal.flex { display: flex; }
+        .custom-modal.active { opacity: 1; pointer-events: auto; }
         .custom-modal-content {
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-in-out;
             transform: scale(0.92);
             opacity: 0;
             overflow-y: auto;
             overscroll-behavior: contain;
+            border-radius: 8px !important;
+            width: 100%;
+            max-width: 384px;
+            max-height: 90vh;
+            padding: 20px;
+            border: 1px solid #263853;
+            background: #0f172a;
+            box-shadow: 0 24px 60px rgba(0,0,0,.42);
         }
+        .custom-modal-content.modal-shell { max-width: 672px; }
         .custom-modal.active .custom-modal-content {
             transform: scale(1);
             opacity: 1;
@@ -86,9 +109,9 @@
             }
         }
 
-        /* Prevent iOS zoom on focus */
+        /* Compact desktop controls; phone size is raised below to prevent iOS zoom. */
         input, select, textarea {
-            font-size: 16px !important;
+            font-size: 14px !important;
         }
 
         /* Subtle Glow Animation */
@@ -145,9 +168,13 @@
             align-items: center;
             width: 100%;
         }
+        .assignment-row + .assignment-row { margin-top: 6px; }
 
         .assignment-header {
             padding: 0 10px;
+            color: #8da0bd;
+            font-size: 11px;
+            font-weight: 600;
         }
         .assignment-header span:nth-child(2),
         .assignment-header span:nth-child(3) {
@@ -156,7 +183,108 @@
 
         .assignment-row {
             padding: 10px 10px;
+            border-radius: 6px !important;
+            background: #162033;
+            color: #dce7f8;
+            font-size: 13px;
         }
+        .assignment-row > div:first-child {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .assignment-row > div:first-child span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .assignment-row > div:first-child span:last-child { color: #8da0bd; font-size: 10px; }
+        .assignment-row > span:nth-child(2) { text-align: center; }
+        .assignment-row > span:nth-child(3) { color: #34d399; font-weight: 700; text-align: center; }
+        .assignment-row > div:last-child { display: flex; justify-content: flex-end; }
+
+        .pallet-entry-panel,
+        .pallet-entry-grid input,
+        .pallet-entry-grid .zone-trigger,
+        .save-location-btn,
+        .custom-dropdown-menu {
+            border-radius: 6px !important;
+        }
+        .pallet-entry-panel {
+            padding: 12px;
+            border: 1px solid #263853;
+            background: #0b121e;
+        }
+        .pallet-entry-grid {
+            display: grid;
+            grid-template-columns: minmax(150px, 4fr) minmax(90px, 3fr) minmax(90px, 4fr) minmax(64px, 1fr);
+            gap: 12px;
+            align-items: end;
+        }
+        .pallet-entry-grid > div {
+            position: relative;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .pallet-entry-grid label {
+            display: block;
+            color: #91a0b7;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .pallet-entry-grid input,
+        .pallet-entry-grid .zone-trigger {
+            width: 100%;
+            min-height: 42px;
+            padding: 0 12px;
+            border: 1px solid #334155;
+            background: #111827;
+            color: #f4f7fb;
+            outline: none;
+        }
+        .pallet-entry-grid .zone-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .pallet-entry-grid input:focus,
+        .pallet-entry-grid .zone-trigger:hover { border-color: #3b82f6; }
+        .save-location-btn {
+            width: 100%;
+            min-height: 42px;
+            border: 1px solid #3b82f6;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .custom-dropdown-menu {
+            left: 0;
+            right: 0;
+            top: 100%;
+            margin-top: 6px;
+            padding: 4px;
+            border: 1px solid #334155;
+            background: #111827;
+            box-shadow: 0 18px 40px rgba(0,0,0,.34);
+            overflow: hidden;
+        }
+        .custom-dropdown-menu button {
+            width: 100%;
+            min-height: 34px;
+            padding: 0 10px;
+            border: 0;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: transparent;
+            color: #dce7f8;
+            font: inherit;
+            font-size: 12px;
+            text-align: left;
+            cursor: pointer;
+        }
+        .custom-dropdown-menu button:hover { background: #1e293b; }
 
         .remove-btn {
             width: 84px;
@@ -164,6 +292,10 @@
             padding: 6px 4px;
             font-size: 11px;
             white-space: nowrap;
+            border: 1px solid rgba(239, 68, 68, .35);
+            border-radius: 4px;
+            background: rgba(127, 29, 29, .24);
+            color: #fca5a5;
         }
 
         /* Custom Dropdown Animation & Styles */
@@ -173,6 +305,9 @@
             transform-origin: top;
             transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
+        .custom-dropdown-menu.hidden { display: none !important; }
+        .custom-dropdown-menu.opacity-0 { opacity: 0; }
+        .custom-dropdown-menu.scale-95 { transform: scale(.95); }
         .form-dropdown {
             position: relative;
             min-width: 0;
@@ -180,7 +315,7 @@
         .form-dropdown-trigger {
             width: 100%;
             min-height: 44px;
-            border-radius: 12px;
+            border-radius: 6px;
             border: 1px solid #2b405f;
             background: #0b1423;
             color: var(--text);
@@ -232,16 +367,16 @@
 
         /* ===== Responsive redesign: iPhone 14 Pro + laptop ===== */
         :root {
-            --page-bg: #08101f;
-            --panel: #101b2e;
-            --panel-2: #152238;
-            --border: #243652;
-            --muted: #7f93b1;
-            --text: #edf3ff;
-            --cyan: #24b7ff;
-            --green: #2de1ae;
-            --yellow: #ffc62a;
-            --blue: #1677ff;
+            --page-bg: #080d16;
+            --panel: #101827;
+            --panel-2: #162033;
+            --border: #2a374b;
+            --muted: #91a0b7;
+            --text: #f4f7fb;
+            --cyan: #38bdf8;
+            --green: #34d399;
+            --yellow: #fbbf24;
+            --blue: #3b82f6;
         }
 
         html {
@@ -258,9 +393,7 @@
         }
         body {
             margin: 0;
-            background:
-                radial-gradient(circle at 72% 20%, rgba(29, 78, 216, .08), transparent 35%),
-                linear-gradient(180deg, #091222 0%, #07101e 100%);
+            background: #080d16;
             min-width: 320px;
         }
         * {
@@ -288,30 +421,30 @@
         }
 
         .app-shell {
-            width: min(1180px, calc(100% - 48px));
-            max-width: 1180px;
+            width: min(1480px, calc(100% - 40px));
+            max-width: 1480px;
             min-height: 100vh;
-            padding: 26px 0 42px;
+            padding: 20px 0 36px;
             display: flex;
             flex-direction: column;
             gap: 22px;
         }
         .app-layout {
             display: grid;
-            grid-template-columns: 230px minmax(0, 1fr);
-            gap: 22px;
+            grid-template-columns: 236px minmax(0, 1fr);
+            gap: 20px;
             align-items: stretch;
             min-width: 0;
             width: 100%;
         }
         .sidebar {
             position: sticky;
-            top: 22px;
-            border: 1px solid #263853;
-            border-radius: 20px;
-            background: rgba(12, 20, 34, .86);
-            box-shadow: inset 0 1px rgba(255,255,255,.025), 0 18px 40px rgba(0,0,0,.16);
-            padding: 14px;
+            top: 20px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #0d1522;
+            box-shadow: 0 10px 28px rgba(0,0,0,.16);
+            padding: 12px;
         }
         .sidebar-brand {
             display: flex;
@@ -322,32 +455,32 @@
             margin-bottom: 12px;
         }
         .sidebar-logo {
-            width: 42px;
-            height: 42px;
-            border-radius: 13px;
-            box-shadow: 0 10px 20px rgba(36, 183, 255, .16), inset 0 1px rgba(255,255,255,.1);
+            width: 38px;
+            height: 38px;
+            border-radius: 7px;
+            box-shadow: 0 8px 18px rgba(56, 189, 248, .12);
         }
         .sidebar-title {
             color: var(--text);
-            font-size: 15px;
-            font-weight: 800;
+            font-size: 14px;
+            font-weight: 700;
             line-height: 1.1;
         }
         .sidebar-subtitle {
             color: #7f93b1;
-            font-size: 10px;
+            font-size: 11px;
             margin-top: 3px;
         }
         .nav-list {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 3px;
         }
         .nav-btn {
             width: 100%;
             min-height: 42px;
             border: 1px solid transparent;
-            border-radius: 12px;
+            border-radius: 6px;
             color: #9fb1cc;
             background: transparent;
             display: flex;
@@ -355,7 +488,7 @@
             gap: 10px;
             padding: 0 12px;
             font-size: 13px;
-            font-weight: 700;
+            font-weight: 600;
             text-align: left;
             transition: background .2s ease, border-color .2s ease, color .2s ease;
         }
@@ -364,8 +497,8 @@
             color: #edf3ff;
         }
         .nav-btn.active {
-            background: linear-gradient(180deg, rgba(36,183,255,.16), rgba(45,225,174,.1));
-            border-color: rgba(36,183,255,.34);
+            background: #17263a;
+            border-color: #315476;
             color: #ffffff;
         }
         .nav-icon {
@@ -373,6 +506,16 @@
             color: currentColor;
             text-align: center;
             flex: 0 0 20px;
+        }
+        .nav-icon svg {
+            display: block;
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
         .main-panel {
             min-width: 0;
@@ -389,8 +532,8 @@
             max-width: 100%;
             padding: 8px;
             border: 1px solid #263853;
-            border-radius: 16px;
-            background: rgba(12, 20, 34, .86);
+            border-radius: 8px;
+            background: #0d1522;
             scrollbar-width: none;
             -webkit-overflow-scrolling: touch;
         }
@@ -423,25 +566,26 @@
             min-width: 0;
             max-width: 100%;
             border: 1px solid #263853;
-            background: linear-gradient(180deg, rgba(16,28,48,.96), rgba(12,22,38,.96));
-            box-shadow: 0 12px 24px rgba(0,0,0,.12), inset 0 1px rgba(255,255,255,.018);
+            background: #101827;
+            box-shadow: 0 8px 20px rgba(0,0,0,.1);
         }
         .stat-card {
-            border-radius: 14px;
-            padding: 16px;
-            min-height: 106px;
+            border-radius: 8px;
+            padding: 15px 16px;
+            min-height: 96px;
         }
         .stat-label {
             color: #8397b7;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: .05em;
         }
         .stat-value {
             color: #edf3ff;
-            font-size: 30px;
-            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 28px;
+            font-weight: 700;
             line-height: 1;
             margin-top: 12px;
         }
@@ -451,7 +595,7 @@
             margin-top: 8px;
         }
         .data-panel {
-            border-radius: 16px;
+            border-radius: 8px;
             overflow: hidden;
         }
         .panel-header {
@@ -468,7 +612,7 @@
         .panel-title {
             color: #edf3ff;
             font-size: 15px;
-            font-weight: 800;
+            font-weight: 700;
         }
         .panel-subtitle {
             color: #7f93b1;
@@ -490,13 +634,21 @@
         .data-table th {
             color: #8397b7;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: .05em;
-            background: rgba(7, 16, 30, .44);
+            background: #0c1421;
         }
         .data-table td {
             color: #dce7f8;
+        }
+        .data-table .data-code,
+        .data-table .data-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-variant-numeric: tabular-nums;
+        }
+        .data-table .data-number {
+            text-align: right;
         }
         .data-table tr:last-child td { border-bottom: 0; }
         .data-table-wrap {
@@ -526,7 +678,80 @@
         }
         .modal-shell {
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
+
+        .stock-photo-panel {
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid #263853;
+            border-radius: 6px;
+            background: #0b121e;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .stock-photo-main,
+        .stock-photo-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .stock-photo-main { min-width: 0; }
+        .stock-photo-panel button {
+            min-height: 34px;
+            padding: 0 10px;
+            border: 1px solid #334155;
+            border-radius: 5px;
+            background: #1e293b;
+            color: #dce7f8;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .stock-photo-panel button:last-child {
+            border-color: rgba(239, 68, 68, .35);
+            background: rgba(127, 29, 29, .24);
+            color: #fca5a5;
+        }
+        .stock-photo-empty { color: #91a0b7; font-size: 12px; }
+        .stock-photo-thumb-wrap {
+            position: relative;
+            width: 42px;
+            height: 42px;
+            flex: 0 0 auto;
+        }
+        .stock-photo-thumb {
+            width: 42px;
+            height: 42px;
+            border: 1px solid #334155;
+            border-radius: 5px;
+            object-fit: cover;
+        }
+        .stock-photo-loading {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #334155;
+            border-radius: 5px;
+            color: #91a0b7;
+            font-size: 9px;
+        }
+        .stock-photo-remove {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 18px;
+            min-height: 18px !important;
+            height: 18px;
+            padding: 0 !important;
+            border-radius: 50% !important;
+            opacity: 0;
+        }
+        .stock-photo-thumb-wrap:hover .stock-photo-remove { opacity: 1; }
         .modal-header {
             display: flex;
             align-items: flex-start;
@@ -539,7 +764,7 @@
         .modal-title {
             color: #f8fafc;
             font-size: 18px;
-            font-weight: 800;
+            font-weight: 700;
             line-height: 1.2;
             margin: 0;
         }
@@ -558,7 +783,7 @@
             color: #6ff4c8;
             background: rgba(45, 225, 174, .1);
             border: 1px solid rgba(45, 225, 174, .22);
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 800;
             white-space: nowrap;
         }
@@ -571,9 +796,9 @@
         .modal-input {
             width: 100%;
             height: 44px;
-            border-radius: 12px;
+            border-radius: 6px;
             border: 1px solid #2b405f;
-            background: linear-gradient(180deg, rgba(14, 26, 44, .98), rgba(8, 18, 32, .98));
+            background: #0b1421;
             color: var(--text);
             padding: 0 14px;
             outline: none;
@@ -587,7 +812,7 @@
         .modal-pr-summary,
         .modal-empty-state {
             border: 1px solid #263853;
-            border-radius: 14px;
+            border-radius: 8px;
             background: rgba(8, 18, 32, .74);
             padding: 12px 14px;
         }
@@ -618,7 +843,7 @@
         }
         .modal-item-card {
             border: 1px solid #263853;
-            border-radius: 14px;
+            border-radius: 8px;
             background: rgba(8, 18, 32, .78);
             padding: 12px;
             display: flex;
@@ -651,7 +876,7 @@
             height: 44px;
             display: flex;
             align-items: center;
-            border-radius: 12px;
+            border-radius: 6px;
             border: 1px solid #243652;
             background: rgba(2, 6, 23, .72);
             color: #7f93b1;
@@ -677,8 +902,8 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            border-radius: 12px;
-            font-weight: 800;
+            border-radius: 6px;
+            font-weight: 700;
             white-space: nowrap;
             transition: border-color .2s ease, background .2s ease, color .2s ease, box-shadow .2s ease;
         }
@@ -750,9 +975,9 @@
             align-items: center;
             min-height: 24px;
             padding: 0 9px;
-            border-radius: 999px;
+            border-radius: 4px;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 700;
             border: 1px solid transparent;
             white-space: nowrap;
         }
@@ -785,7 +1010,7 @@
         .field-title {
             color: #8da0bd;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 600;
             line-height: 1.2;
             text-transform: uppercase;
             letter-spacing: .04em;
@@ -793,9 +1018,9 @@
         .filter-control {
             width: 100%;
             height: 44px;
-            border-radius: 12px;
+            border-radius: 6px;
             border: 1px solid #2b405f;
-            background: linear-gradient(180deg, rgba(14, 26, 44, .98), rgba(8, 18, 32, .98));
+            background: #0b1421;
             color: var(--text);
             padding: 0 16px;
             outline: none;
@@ -866,14 +1091,14 @@
         .filter-action-btn {
             width: 100%;
             height: 44px;
-            border-radius: 12px;
+            border-radius: 6px;
             padding: 0 16px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
             font-size: 13px;
-            font-weight: 800;
+            font-weight: 700;
             white-space: nowrap;
             border: 1px solid transparent;
             transition: transform .15s ease, border-color .2s ease, background .2s ease, color .2s ease, box-shadow .2s ease;
@@ -886,14 +1111,14 @@
             box-shadow: 0 0 0 3px rgba(42,131,255,.18);
         }
         .filter-action-btn.primary {
-            background: linear-gradient(180deg, #2de1ae 0%, #22c997 100%);
-            border-color: rgba(89, 241, 193, .38);
-            color: #061811;
-            box-shadow: 0 10px 20px rgba(45, 225, 174, .12), inset 0 1px rgba(255,255,255,.18);
+            background: #2563eb;
+            border-color: #3b82f6;
+            color: #ffffff;
+            box-shadow: none;
         }
         .filter-action-btn.primary:hover {
-            background: linear-gradient(180deg, #38edba 0%, #28d5a1 100%);
-            border-color: rgba(111, 244, 200, .55);
+            background: #3b82f6;
+            border-color: #60a5fa;
         }
         .filter-action-btn.secondary {
             background: rgba(11, 20, 35, .86);
@@ -914,14 +1139,171 @@
             fill: none;
             flex: 0 0 auto;
         }
-
+        .create-item-form {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .required-mark {
+            color: #6ff4c8;
+            font-weight: 900;
+        }
+        .parts-set-note {
+            color: #7f93b1;
+            font-size: 10px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .parts-per-set-field.hidden {
+            display: none;
+        }
+        #alert-message {
+            white-space: pre-line;
+        }
+        .item-master-toolbar {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(140px, 180px) auto;
+            gap: 10px;
+            align-items: end;
+            padding: 14px;
+        }
+        .item-create-btn {
+            height: 44px;
+            width: auto;
+        }
+        .item-master-table th:last-child,
+        .item-master-table td:last-child {
+            width: 54px;
+            text-align: right;
+        }
+        .item-master-table-wrap {
+            overflow: visible;
+        }
+        .item-main-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+        .item-main-name {
+            color: #edf3ff;
+            font-weight: 800;
+        }
+        .item-main-unit {
+            color: #7f93b1;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .item-code {
+            font-family: 'JetBrains Mono', monospace;
+            color: #b9c8df;
+            font-weight: 800;
+        }
+        .item-action-btn {
+            width: 34px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid #2b405f;
+            background: #0b1423;
+            color: #d9e7ff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            line-height: 1;
+        }
+        .item-action-btn:hover {
+            border-color: #24b7ff;
+            color: #ffffff;
+            background: #111d31;
+        }
+        .item-action-cell {
+            position: relative;
+        }
+        .item-action-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
+            min-width: 148px;
+            z-index: 80;
+            border: 1px solid #2b405f;
+            border-radius: 6px;
+            background: #0b1423;
+            box-shadow: 0 18px 34px rgba(0,0,0,.28);
+            padding: 6px;
+        }
+        .item-action-menu.hidden {
+            display: none;
+        }
+        .item-menu-btn {
+            width: 100%;
+            min-height: 34px;
+            border-radius: 4px;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            color: #d9e7ff;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: left;
+        }
+        .item-menu-btn:hover {
+            background: rgba(36, 183, 255, .1);
+            color: #ffffff;
+        }
+        .item-menu-btn.danger {
+            color: #ff9aa8;
+        }
+        .item-menu-btn.danger:hover {
+            background: rgba(239, 68, 68, .12);
+            color: #ffffff;
+        }
+        .item-mobile-list {
+            display: none;
+        }
+        .item-mobile-card {
+            border: 1px solid #263853;
+            border-radius: 8px;
+            background: rgba(8, 18, 32, .74);
+            padding: 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .item-mobile-card-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .item-mobile-meta,
+        .item-mobile-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .item-mobile-stat {
+            border-left: 1px solid #2a374b;
+            padding: 4px 8px;
+        }
+        .item-mobile-stat:first-child { border-left: 0; padding-left: 0; }
+        .item-mobile-label {
+            color: #7f93b1;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .item-mobile-value {
+            color: #edf3ff;
+            font-size: 13px;
+            font-weight: 800;
+            margin-top: 3px;
+        }
         .page-header {
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             gap: 24px;
-            min-height: 58px;
+            min-height: 48px;
         }
         .brand-lockup {
             display: flex;
@@ -930,24 +1312,20 @@
             min-width: 0;
         }
         .app-logo {
-            width: 54px;
-            height: 54px;
-            flex: 0 0 auto;
-            border-radius: 16px;
-            box-shadow: 0 14px 28px rgba(36, 183, 255, .18), inset 0 1px rgba(255,255,255,.1);
+            display: none;
         }
         .page-heading h1 {
             margin: 0;
-            font-size: 34px;
-            line-height: 1.05;
+            font-size: 26px;
+            line-height: 1.15;
             font-weight: 700;
             letter-spacing: 0;
             color: var(--text);
         }
         .page-heading p {
-            margin: 10px 0 0;
+            margin: 6px 0 0;
             color: #9bacC6;
-            font-size: 16px;
+            font-size: 13px;
             letter-spacing: 0;
         }
         .new-transaction-btn {
@@ -973,8 +1351,8 @@
             gap: 12px;
             padding: 12px;
             border: 1px solid #263853;
-            border-radius: 18px;
-            background: rgba(12, 20, 34, .78);
+            border-radius: 8px;
+            background: #0d1522;
             box-shadow: inset 0 1px rgba(255,255,255,.02);
         }
         .toolbar-search {
@@ -985,11 +1363,11 @@
             flex: 0 0 auto;
             min-height: 48px;
             padding: 0 18px;
-            border-radius: 12px;
-            background: linear-gradient(180deg, #2de1ae 0%, #22c997 100%);
-            border-color: rgba(89, 241, 193, .35);
-            color: #061811;
-            box-shadow: 0 10px 20px rgba(45, 225, 174, .12), inset 0 1px rgba(255,255,255,.18);
+            border-radius: 6px;
+            background: #2563eb;
+            border-color: #3b82f6;
+            color: #ffffff;
+            box-shadow: none;
             font-size: 14px;
         }
         .toolbar-new-btn:hover { filter: brightness(1.05); }
@@ -998,7 +1376,7 @@
             flex: 0 0 auto;
             min-height: 48px;
             padding: 0 16px;
-            border-radius: 12px;
+            border-radius: 6px;
             background: #0b1423;
             border: 1px solid #2b405f;
             color: #d9e7ff;
@@ -1028,7 +1406,7 @@
             width: 100%;
             height: 64px;
             padding: 0 22px 0 64px;
-            border-radius: 18px;
+            border-radius: 6px;
             border: 1px solid #2b405f;
             background: linear-gradient(180deg, rgba(18,30,51,.96), rgba(13,24,42,.96));
             color: var(--text);
@@ -1055,7 +1433,7 @@
         }
         .action-toolbar .search-input {
             height: 48px;
-            border-radius: 12px;
+            border-radius: 6px;
             padding-left: 46px;
             background: #0b1423;
         }
@@ -1071,26 +1449,25 @@
             align-items: center;
             padding: 0 22px;
             color: #8397b7;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: .06em;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .04em;
         }
         #inventory-list { display: flex; flex-direction: column; gap: 14px; }
 
         .stock-card {
-            background: linear-gradient(180deg, rgba(16,28,48,.97), rgba(13,24,42,.97));
+            background: #101827;
             border: 1px solid #263853;
-            border-radius: 22px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 12px 24px rgba(0,0,0,.12), inset 0 1px rgba(255,255,255,.018);
+            box-shadow: 0 8px 20px rgba(0,0,0,.1);
             transform: translateZ(0);
             transition: border-color .22s ease, transform .22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .22s ease, background .22s ease;
             will-change: transform, box-shadow, border-color;
         }
         .stock-card:hover {
             border-color: #334a6d;
-            transform: translateY(-1px);
-            box-shadow: 0 15px 28px rgba(0,0,0,.16), inset 0 1px rgba(255,255,255,.024);
+            box-shadow: 0 10px 24px rgba(0,0,0,.14);
         }
         .stock-card.card-click-transition {
             animation: cardClickTransition .28s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1108,8 +1485,8 @@
             grid-template-columns: 235px 165px minmax(280px, 1fr) 250px 24px;
             gap: 0;
             align-items: center;
-            min-height: 108px;
-            padding: 12px 20px 12px 0;
+            min-height: 88px;
+            padding: 10px 20px 10px 0;
             cursor: pointer;
             position: relative;
             user-select: none;
@@ -1123,11 +1500,11 @@
             min-width: 0;
         }
         .accent-line {
-            width: 4px;
-            height: 68%;
-            min-height: 58px;
-            max-height: 72px;
-            border-radius: 999px;
+            width: 3px;
+            height: 58%;
+            min-height: 44px;
+            max-height: 54px;
+            border-radius: 0 2px 2px 0;
             background: var(--green);
             box-shadow: 0 0 14px rgba(45,225,174,.15);
             margin-right: 20px;
@@ -1136,14 +1513,15 @@
         .id-date-content { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
         .transaction-id {
             color: var(--green);
-            font-size: 19px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
             font-weight: 700;
             line-height: 1.1;
             margin-bottom: 3px;
         }
         .date-line {
             color: #8da0bd;
-            font-size: 13px;
+            font-size: 12px;
             line-height: 1.25;
             display: flex;
             align-items: center;
@@ -1160,7 +1538,8 @@
         }
         .pr-cell {
             color: var(--cyan);
-            font-size: 17px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
             font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
@@ -1176,13 +1555,13 @@
         }
         .item-title {
             color: #f6f8fd;
-            font-size: 17px;
+            font-size: 14px;
             font-weight: 600;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        .item-qty { color: #b4c0d4; font-size: 15px; }
+        .item-qty { color: #b4c0d4; font-size: 12px; }
         .assigned-block { min-width: 0; padding-right: 20px; }
         .assigned-topline {
             display: flex;
@@ -1191,12 +1570,12 @@
             gap: 12px;
             margin-bottom: 6px;
         }
-        .assigned-value { color: var(--yellow); font-size: 18px; font-weight: 700; white-space: nowrap; }
+        .assigned-value { color: var(--yellow); font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; white-space: nowrap; }
         .assigned-value.complete { color: var(--green); }
-        .assigned-percent { color: #9cadc5; font-size: 15px; font-weight: 600; white-space: nowrap; }
+        .assigned-percent { color: #9cadc5; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; white-space: nowrap; }
         .assigned-progress {
             width: 100%;
-            height: 10px;
+            height: 6px;
             border-radius: 999px;
             background: #263751;
             overflow: hidden;
@@ -1223,7 +1602,12 @@
         .row-chevron.expanded { transform: rotate(90deg); color: #58a1ff; }
 
         .accordion-inner.card-content-target { padding: 0 20px 20px; }
-        .accordion-inner.card-content-target > div { margin-top: 0 !important; padding-top: 18px !important; }
+        .accordion-inner.card-content-target > div {
+            margin-top: 0 !important;
+            padding-top: 18px !important;
+            border-top: 1px solid #243247;
+        }
+        .accordion-inner.card-content-target > div > * + * { margin-top: 12px; }
 
         .list-footer {
             display: flex;
@@ -1239,14 +1623,14 @@
         @media (min-width: 1001px) {
             #inventory-list { gap: 12px; }
             .stock-row {
-                min-height: 108px;
-                padding-top: 12px;
-                padding-bottom: 12px;
+                min-height: 88px;
+                padding-top: 10px;
+                padding-bottom: 10px;
             }
-            .accent-line { min-height: 58px; max-height: 70px; }
+            .accent-line { min-height: 44px; max-height: 54px; }
             .item-cell { gap: 3px; }
             .assigned-topline { margin-bottom: 6px; }
-            .assigned-progress { height: 10px; }
+            .assigned-progress { height: 6px; }
         }
 
         /* Laptop / medium screen tuning */
@@ -1257,14 +1641,17 @@
             .nav-btn { font-size: 12px; padding: 0 10px; }
             .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .report-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .create-item-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .item-master-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .stock-header { grid-template-columns: 200px 145px minmax(220px, 1fr) 210px; }
-            .stock-row { grid-template-columns: 200px 145px minmax(220px, 1fr) 210px 22px; min-height: 104px; padding-top: 11px; padding-bottom: 11px; }
-            .transaction-id { font-size: 19px; }
-            .pr-cell, .item-title { font-size: 16px; }
+            .stock-row { grid-template-columns: 200px 145px minmax(220px, 1fr) 210px 22px; min-height: 88px; padding-top: 10px; padding-bottom: 10px; }
+            .transaction-id { font-size: 16px; }
+            .pr-cell, .item-title { font-size: 14px; }
         }
 
         /* iPhone / mobile layout */
         @media (max-width: 640px) {
+            input, select, textarea { font-size: 16px !important; }
             body {
                 padding-left: env(safe-area-inset-left);
                 padding-right: env(safe-area-inset-right);
@@ -1289,17 +1676,17 @@
                 width: 100%;
                 overflow-x: visible;
                 padding: 6px;
-                border-radius: 18px;
+                border-radius: 8px;
             }
             .topbar-nav .nav-btn {
                 width: 100%;
                 min-height: 54px;
                 padding: 6px 3px;
-                border-radius: 13px;
+                border-radius: 5px;
                 flex-direction: column;
                 justify-content: center;
                 gap: 4px;
-                font-size: 10px;
+                font-size: 11px;
                 line-height: 1.1;
                 text-align: center;
                 white-space: normal;
@@ -1314,12 +1701,41 @@
             .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
             .stat-card { min-height: 94px; padding: 13px; }
             .stat-value { font-size: 24px; margin-top: 10px; }
-            .stat-note { font-size: 10px; }
+            .stat-note { font-size: 11px; }
             .panel-header { align-items: flex-start; flex-direction: column; padding: 13px; }
             .data-table { font-size: 12px; min-width: 640px; }
             .data-table th,
             .data-table td { padding: 10px 12px; }
+            .dashboard-recent-table,
+            .dashboard-zone-table {
+                min-width: 0;
+                table-layout: fixed;
+            }
+            .dashboard-recent-table th:nth-child(1),
+            .dashboard-recent-table td:nth-child(1) { width: 72px; }
+            .dashboard-recent-table th:nth-child(2),
+            .dashboard-recent-table td:nth-child(2) { width: 86px; }
+            .dashboard-recent-table th:nth-child(4),
+            .dashboard-recent-table td:nth-child(4) { width: 58px; }
+            .dashboard-recent-table th:nth-child(5),
+            .dashboard-recent-table td:nth-child(5),
+            .dashboard-recent-table th:nth-child(6),
+            .dashboard-recent-table td:nth-child(6) { display: none; }
+            .dashboard-recent-table td:nth-child(3) {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
             .report-filters { grid-template-columns: 1fr; gap: 8px; }
+            .create-item-form { grid-template-columns: 1fr; }
+            .item-master-toolbar { grid-template-columns: 1fr; padding: 12px; }
+            .item-master-table-wrap { display: none; }
+            .item-mobile-list {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                padding: 12px;
+            }
             .modal-header {
                 gap: 10px;
             }
@@ -1355,13 +1771,13 @@
             .action-toolbar {
                 gap: 7px;
                 padding: 8px;
-                border-radius: 15px;
+                border-radius: 8px;
                 max-width: 100%;
                 overflow: hidden;
             }
             .action-toolbar .search-input {
                 height: 44px;
-                border-radius: 11px;
+                border-radius: 6px;
                 padding-left: 38px;
                 padding-right: 8px;
                 font-size: 16px !important;
@@ -1376,7 +1792,7 @@
                 width: 44px;
                 padding: 0;
                 justify-content: center;
-                border-radius: 11px;
+                border-radius: 6px;
                 font-size: 12px;
                 gap: 4px;
                 white-space: nowrap;
@@ -1388,14 +1804,14 @@
                 width: 44px;
                 padding: 0;
                 justify-content: center;
-                border-radius: 11px;
+                border-radius: 6px;
             }
             .toolbar-export-btn span { display: none; }
             .toolbar-export-btn svg { width: 18px; height: 18px; }
 
             .stock-header { display: none; }
             #inventory-list { gap: 11px; }
-            .stock-card { border-radius: 18px; }
+            .stock-card { border-radius: 8px; }
             .stock-row {
                 grid-template-columns: minmax(0, 1fr) 112px 16px;
                 grid-template-areas:
@@ -1414,7 +1830,7 @@
                 margin-right: 13px;
             }
             .transaction-id { font-size: 16px; margin-bottom: 2px; }
-            .date-line { font-size: 10px; gap: 5px; }
+            .date-line { font-size: 11px; gap: 5px; }
             .date-line svg { width: 13px; height: 13px; }
             .pr-cell {
                 grid-area: pr;
@@ -1431,7 +1847,7 @@
                 gap: 3px;
             }
             .item-title { font-size: 14px; }
-            .item-qty { font-size: 11px; }
+            .item-qty { font-size: 12px; }
             .assigned-block {
                 grid-area: assigned;
                 padding-right: 8px;
@@ -1439,7 +1855,7 @@
             }
             .assigned-topline { gap: 7px; margin-bottom: 7px; }
             .assigned-value { font-size: 14px; }
-            .assigned-percent { font-size: 11px; }
+            .assigned-percent { font-size: 12px; }
             .assigned-progress { height: 8px; }
             .row-chevron {
                 grid-area: chevron;
@@ -1457,8 +1873,54 @@
             }
             .assignment-header { padding: 0 7px; }
             .assignment-row { padding: 9px 7px; }
-            .remove-btn { width: 66px; font-size: 10px; padding: 6px 2px; }
-            .list-footer { display: block; text-align: center; font-size: 10px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+            .pallet-entry-panel {
+                padding: 10px;
+                border-radius: 8px !important;
+            }
+            .pallet-entry-grid {
+                display: grid;
+                grid-template-columns: minmax(96px, 1fr) 62px 64px 38px !important;
+                gap: 6px !important;
+                align-items: end;
+            }
+            .pallet-entry-grid > div {
+                min-width: 0;
+            }
+            .pallet-entry-grid label {
+                font-size: 10px;
+                line-height: 1.1;
+            }
+            .pallet-entry-grid input,
+            .pallet-entry-grid .zone-trigger {
+                min-height: 42px;
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+            .pallet-entry-grid input {
+                font-size: 16px !important;
+            }
+            .save-location-btn {
+                width: 38px;
+                min-height: 42px;
+                padding-left: 0;
+                padding-right: 0;
+                border-radius: 6px !important;
+            }
+            .save-location-btn span {
+                font-size: 0;
+            }
+            .save-location-btn span::before {
+                content: "OK";
+                font-size: 11px;
+            }
+            .remove-btn { width: 66px; font-size: 11px; padding: 6px 2px; }
+            .stock-photo-panel,
+            .stock-photo-main {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .stock-photo-actions { justify-content: space-between; }
+            .list-footer { display: block; text-align: center; font-size: 11px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
             .fast-entry-note { display: none; }
         }
 
@@ -1471,7 +1933,7 @@
             .topbar-nav .nav-btn {
                 min-height: 50px;
                 padding: 5px 2px;
-                font-size: 9px;
+                font-size: 10px;
             }
             .topbar-nav .nav-icon {
                 font-size: 13px;
@@ -1480,6 +1942,19 @@
             .toolbar-new-btn { padding: 0 9px; }
             .new-fng-label { font-size: 11px; }
             .stock-row { grid-template-columns: minmax(0, 1fr) 102px 14px; }
+            .pallet-entry-panel { padding: 8px; }
+            .pallet-entry-grid {
+                grid-template-columns: minmax(82px, 1fr) 52px 54px 34px !important;
+                gap: 5px !important;
+            }
+            .pallet-entry-grid input,
+            .pallet-entry-grid .zone-trigger {
+                padding-left: 6px;
+                padding-right: 6px;
+            }
+            .save-location-btn {
+                width: 34px;
+            }
             .pr-cell { font-size: 12px; }
         }
 
@@ -1546,7 +2021,6 @@
         <!-- Footer -->
         <div class="list-footer">
             <span id="result-count">Showing transactions</span>
-            <span class="fast-entry-note">Fast Entry Enabled · Tap ✓ or press Enter to save</span>
         </div>
 
                 </section>
@@ -1555,6 +2029,27 @@
                 <section id="view-items" class="view-section view-surface hidden"></section>
                 <section id="view-prs" class="view-section view-surface hidden"></section>
             </main>
+        </div>
+    </div>
+
+    <!-- Modal for Creating Item Master Records -->
+    <div id="item-modal" class="custom-modal fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
+        <div class="custom-modal-content modal-shell bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 w-full max-w-2xl shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title">Create New Item</h2>
+                    <div id="item-modal-kicker" class="modal-kicker">Add master data for procurement and receiving</div>
+                </div>
+                <span class="modal-badge">Item Master</span>
+            </div>
+            <div id="item-modal-form" class="create-item-form report-filters"></div>
+            <div class="modal-footer">
+                <button onclick="createRipple(event); closeItemModal()" class="ripple-btn modal-cancel-btn">Cancel</button>
+                <button id="item-modal-submit" onclick="createRipple(event); saveItemFromModal()" class="ripple-btn modal-create-btn">
+                    <svg class="filter-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                    <span>Create Item</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1645,6 +2140,10 @@
         const INVENTORY_STORAGE_KEY = 'stock-received-inventory-v1';
         const ITEM_MASTER_STORAGE_KEY = 'stock-received-item-master-v1';
         const PR_STORAGE_KEY = 'stock-received-pr-list-v1';
+        const APP_DATA_STORAGE_KEY = 'stock-assign-domain-v2';
+        const APP_SCHEMA_VERSION = 2;
+        const PHOTO_DB_NAME = 'stock-assign-attachments';
+        const PHOTO_STORE_NAME = 'photos';
         const defaultInventory = [
             {
                 id: 'FNG-1',
@@ -1693,20 +2192,32 @@
         ];
 
         let inventory = loadInventory();
+        const legacyInventory = inventory;
         let masterItems = loadMasterItems();
+        const legacyMasterItems = masterItems;
         let purchaseRequests = loadPurchaseRequests();
+        const legacyPurchaseRequests = purchaseRequests;
+        let appData = loadOrMigrateDomainData(legacyInventory, legacyMasterItems, legacyPurchaseRequests);
+        masterItems = hydrateMasterItems(appData);
+        purchaseRequests = hydratePurchaseRequests(appData);
+        inventory = hydrateInventory(appData, masterItems, purchaseRequests);
         let pendingAction = null;
         let modalRows = [];
         let searchQuery = '';
-        const validZones = ['A', 'B', 'C', 'D', 'E', 'Loading'];
-        let currentView = 'dashboard';
+        const validZones = appData.zones.map(zone => zone.code);
+        const validViewIds = ['dashboard', 'stock', 'report', 'items', 'prs'];
+        const requestedView = new URLSearchParams(window.location.search).get('view');
+        let currentView = validViewIds.includes(requestedView) ? requestedView : 'dashboard';
         let reportFilters = { pr: '', zone: '', status: '' };
+        let itemMasterFilters = { search: '', category: '', type: '' };
+        let editingItemId = null;
+        let openItemActionMenuId = null;
         const navItems = [
-            { id: 'dashboard', label: 'Dashboard', icon: 'D' },
-            { id: 'stock', label: 'Stock Received', icon: 'S' },
-            { id: 'report', label: 'Report', icon: 'R' },
-            { id: 'items', label: 'Item List', icon: 'I' },
-            { id: 'prs', label: 'PR List', icon: '#' }
+            { id: 'dashboard', label: 'Dashboard' },
+            { id: 'stock', label: 'Stock Received' },
+            { id: 'report', label: 'Report' },
+            { id: 'items', label: 'Item Master' },
+            { id: 'prs', label: 'PR List' }
         ];
 
         function cloneDefaultInventory() {
@@ -1751,13 +2262,7 @@
         }
 
         function saveInventory() {
-            try {
-                localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(inventory));
-                return true;
-            } catch (error) {
-                console.warn('Unable to save inventory:', error);
-                return false;
-            }
+            return saveDomainState();
         }
 
         function buildDefaultMasterItems() {
@@ -1782,7 +2287,7 @@
         }
 
         function normalizeMasterItems(items) {
-            if (!Array.isArray(items) || items.length === 0) return buildDefaultMasterItems();
+            if (!Array.isArray(items)) return buildDefaultMasterItems();
             return items.map((item, index) => ({
                 id: item.id || `ITEM-${String(index + 1).padStart(3, '0')}`,
                 name: item.name || item.item || 'Untitled item',
@@ -1805,13 +2310,7 @@
         }
 
         function saveMasterItems() {
-            try {
-                localStorage.setItem(ITEM_MASTER_STORAGE_KEY, JSON.stringify(masterItems));
-                return true;
-            } catch (error) {
-                console.warn('Unable to save item master:', error);
-                return false;
-            }
+            return saveDomainState();
         }
 
         function findMasterItemByName(name) {
@@ -1828,8 +2327,9 @@
         }
 
         function getReceivedEntriesForPrLine(prId, line) {
+            const prNumber = purchaseRequests.find(pr => pr.id === prId)?.number || prId;
             return inventory.filter(item => {
-                const samePr = (item.pr || '') === prId;
+                const samePr = item.prId === prId || (item.pr || '') === prNumber;
                 const sameItem = line.itemId ? item.itemId === line.itemId : item.item === line.itemName;
                 return samePr && sameItem;
             });
@@ -1848,6 +2348,20 @@
                     .reduce((sum, item) => sum + (Number.parseInt(item.qty || 0, 10) || 0), 0);
             });
 
+            return partTotals.length ? Math.min(...partTotals) : 0;
+        }
+
+        function getAssignedSetsForPrLine(prId, line) {
+            const partsPerSet = Number.parseInt(line.partsPerSet || 1, 10) || 1;
+            const entries = getReceivedEntriesForPrLine(prId, line);
+            if (partsPerSet <= 1) {
+                return entries.reduce((sum, item) => sum + totalAbbr(item), 0);
+            }
+            const partTotals = getPartLabels(partsPerSet).map(partLabel => {
+                return entries
+                    .filter(item => item.partLabel === partLabel)
+                    .reduce((sum, item) => sum + totalAbbr(item), 0);
+            });
             return partTotals.length ? Math.min(...partTotals) : 0;
         }
 
@@ -1876,7 +2390,7 @@
         }
 
         function normalizePurchaseRequests(prs) {
-            if (!Array.isArray(prs) || prs.length === 0) return buildDefaultPurchaseRequests();
+            if (!Array.isArray(prs)) return buildDefaultPurchaseRequests();
             return prs.map((pr, index) => ({
                 id: pr.id || pr.pr || `PR-${String(index + 1).padStart(4, '0')}`,
                 createdAt: pr.createdAt || getCurrentFormattedDateTime(),
@@ -1902,12 +2416,611 @@
         }
 
         function savePurchaseRequests() {
+            return saveDomainState();
+        }
+
+        function createEntityId(prefix) {
+            const value = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            return `${prefix}-${value}`;
+        }
+
+        function getNextDocumentNumber(prefix, existingNumbers) {
+            const highest = existingNumbers.reduce((max, value) => {
+                const match = String(value || '').match(new RegExp(`^${prefix}-(\\d+)$`, 'i'));
+                return match ? Math.max(max, Number.parseInt(match[1], 10) || 0) : max;
+            }, 0);
+            return `${prefix}-${String(highest + 1).padStart(4, '0')}`;
+        }
+
+        function toIsoDateTime(value) {
+            if (!value) return new Date().toISOString();
+            const parsed = new Date(String(value).includes('T') ? value : String(value).replace(' ', 'T'));
+            return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+        }
+
+        function formatDomainDateTime(value) {
+            const parsed = new Date(value);
+            if (Number.isNaN(parsed.getTime())) return String(value || '');
+            const year = parsed.getFullYear();
+            const month = String(parsed.getMonth() + 1).padStart(2, '0');
+            const day = String(parsed.getDate()).padStart(2, '0');
+            const hours = String(parsed.getHours()).padStart(2, '0');
+            const minutes = String(parsed.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+
+        function getDefaultCategories() {
+            return ['Aluminum', 'Frame', 'Glass', 'Hardware', 'Sealant', 'General'].map(name => ({
+                id: name.toLowerCase(),
+                name,
+                isActive: true
+            }));
+        }
+
+        function getDefaultZones() {
+            return ['A', 'B', 'C', 'D', 'E', 'Loading'].map(code => ({
+                id: `zone-${code.toLowerCase()}`,
+                code,
+                name: code === 'Loading' ? 'Loading' : `Zone ${code}`,
+                isActive: true
+            }));
+        }
+
+        function normalizeDomainData(data) {
+            const categories = Array.isArray(data.categories) && data.categories.length ? data.categories : getDefaultCategories();
+            const categoryIds = new Set(categories.map(category => category.id));
+            const items = Array.isArray(data.items) ? data.items.map(item => ({
+                id: item.id || createEntityId('item'),
+                sku: item.sku || '',
+                name: item.name || 'Untitled item',
+                categoryId: categoryIds.has(item.categoryId) ? item.categoryId : 'general',
+                unit: item.unit || 'pcs',
+                itemType: item.itemType === 'Set' ? 'Set' : 'Single',
+                partsPerSet: Math.max(1, Number.parseInt(item.partsPerSet || 1, 10) || 1),
+                isActive: item.isActive !== false,
+                createdAt: toIsoDateTime(item.createdAt),
+                updatedAt: toIsoDateTime(item.updatedAt || item.createdAt)
+            })) : [];
+
+            const purchaseRequests = Array.isArray(data.purchaseRequests) ? data.purchaseRequests.map(pr => ({
+                id: pr.id || createEntityId('pr'),
+                number: pr.number || pr.id || 'PR-Unnumbered',
+                workflowStatus: pr.workflowStatus || 'open',
+                createdAt: toIsoDateTime(pr.createdAt),
+                updatedAt: toIsoDateTime(pr.updatedAt || pr.createdAt),
+                lines: Array.isArray(pr.lines) ? pr.lines.map(line => ({
+                    id: line.id || createEntityId('pr-line'),
+                    itemId: line.itemId || '',
+                    orderedQty: Math.max(0, Number.parseInt(line.orderedQty || line.qty || 0, 10) || 0),
+                    unit: line.unit || line.itemSnapshot?.unit || 'pcs',
+                    itemSnapshot: {
+                        sku: line.itemSnapshot?.sku || '',
+                        name: line.itemSnapshot?.name || line.itemName || 'Untitled item',
+                        unit: line.itemSnapshot?.unit || line.unit || 'pcs',
+                        itemType: line.itemSnapshot?.itemType === 'Set' ? 'Set' : 'Single',
+                        partsPerSet: Math.max(1, Number.parseInt(line.itemSnapshot?.partsPerSet || line.partsPerSet || 1, 10) || 1)
+                    }
+                })) : []
+            })) : [];
+
+            const receipts = Array.isArray(data.receipts) ? data.receipts.map(receipt => ({
+                id: receipt.id || createEntityId('receipt'),
+                number: receipt.number || 'FNG-Unnumbered',
+                purchaseRequestId: receipt.purchaseRequestId || '',
+                workflowStatus: receipt.workflowStatus || 'posted',
+                receivedAt: toIsoDateTime(receipt.receivedAt),
+                lines: Array.isArray(receipt.lines) ? receipt.lines.map(line => ({
+                    id: line.id || createEntityId('receipt-line'),
+                    prLineId: line.prLineId || '',
+                    itemId: line.itemId || '',
+                    itemSnapshot: {
+                        sku: line.itemSnapshot?.sku || '',
+                        name: line.itemSnapshot?.name || line.itemName || 'Untitled item',
+                        unit: line.itemSnapshot?.unit || 'pcs',
+                        partsPerSet: Math.max(1, Number.parseInt(line.itemSnapshot?.partsPerSet || line.partsPerSet || 1, 10) || 1)
+                    },
+                    partNumber: Math.max(0, Number.parseInt(line.partNumber || 0, 10) || 0),
+                    receivedQty: Math.max(0, Number.parseInt(line.receivedQty || line.qty || 0, 10) || 0),
+                    quantityUnit: line.quantityUnit || 'pcs'
+                })) : []
+            })) : [];
+
+            return {
+                schemaVersion: APP_SCHEMA_VERSION,
+                updatedAt: toIsoDateTime(data.updatedAt),
+                categories,
+                units: Array.isArray(data.units) && data.units.length ? data.units : ['pcs', 'set', 'box', 'm', 'kg'],
+                zones: Array.isArray(data.zones) && data.zones.length ? data.zones : getDefaultZones(),
+                items,
+                purchaseRequests,
+                receipts,
+                assignments: Array.isArray(data.assignments) ? data.assignments.map(assignment => ({
+                    id: assignment.id || createEntityId('assignment'),
+                    receiptLineId: assignment.receiptLineId || '',
+                    palletCode: assignment.palletCode || assignment.pallet || '',
+                    zoneId: assignment.zoneId || assignment.zone || 'A',
+                    qty: Math.max(0, Number.parseInt(assignment.qty || 0, 10) || 0),
+                    quantityUnit: assignment.quantityUnit || 'pcs',
+                    assignedAt: toIsoDateTime(assignment.assignedAt || assignment.createdAt)
+                })) : [],
+                attachments: Array.isArray(data.attachments) ? data.attachments.map(attachment => ({
+                    id: attachment.id || createEntityId('attachment'),
+                    receiptLineId: attachment.receiptLineId || '',
+                    fileName: attachment.fileName || 'warehouse-photo.jpg',
+                    mimeType: attachment.mimeType || 'image/jpeg',
+                    size: Number.parseInt(attachment.size || 0, 10) || 0,
+                    createdAt: toIsoDateTime(attachment.createdAt),
+                    ...(attachment.legacyDataUrl ? { legacyDataUrl: attachment.legacyDataUrl } : {})
+                })) : []
+            };
+        }
+
+        function migrateLegacyDomainData(legacyItems, legacyPrs, legacyStock) {
+            const now = new Date().toISOString();
+            const categories = getDefaultCategories();
+            const itemIdByLegacyId = new Map();
+            const itemIdByName = new Map();
+            const items = legacyItems.map(item => {
+                const id = createEntityId('item');
+                itemIdByLegacyId.set(item.id, id);
+                itemIdByName.set(String(item.name || '').toLowerCase(), id);
+                const category = categories.find(entry => entry.name.toLowerCase() === String(item.category || '').toLowerCase());
+                return {
+                    id,
+                    sku: item.sku || '',
+                    name: item.name || 'Untitled item',
+                    categoryId: category?.id || 'general',
+                    unit: item.unit || 'pcs',
+                    itemType: item.itemType === 'Set' ? 'Set' : 'Single',
+                    partsPerSet: Math.max(1, Number.parseInt(item.partsPerSet || 1, 10) || 1),
+                    isActive: true,
+                    createdAt: now,
+                    updatedAt: now
+                };
+            });
+
+            const getMappedItem = source => {
+                return itemIdByLegacyId.get(source.itemId) || itemIdByName.get(String(source.itemName || source.item || '').toLowerCase()) || '';
+            };
+            const itemById = new Map(items.map(item => [item.id, item]));
+            const prIdByNumber = new Map();
+            const purchaseRequests = legacyPrs.map(pr => {
+                const id = createEntityId('pr');
+                const number = pr.number || pr.id || pr.pr || 'PR-Unnumbered';
+                prIdByNumber.set(number.toLowerCase(), id);
+                return {
+                    id,
+                    number,
+                    workflowStatus: String(pr.status || 'open').toLowerCase(),
+                    createdAt: toIsoDateTime(pr.createdAt),
+                    updatedAt: toIsoDateTime(pr.createdAt),
+                    lines: (pr.items || []).map(line => {
+                        const itemId = getMappedItem(line);
+                        const item = itemById.get(itemId);
+                        return {
+                            id: createEntityId('pr-line'),
+                            itemId,
+                            orderedQty: Math.max(0, Number.parseInt(line.qty || 0, 10) || 0),
+                            unit: item?.itemType === 'Set' ? 'set' : item?.unit || 'pcs',
+                            itemSnapshot: {
+                                sku: item?.sku || '',
+                                name: item?.name || line.itemName || 'Untitled item',
+                                unit: item?.unit || 'pcs',
+                                itemType: item?.itemType || line.itemType || 'Single',
+                                partsPerSet: item?.partsPerSet || Math.max(1, Number.parseInt(line.partsPerSet || 1, 10) || 1)
+                            }
+                        };
+                    })
+                };
+            });
+
+            const prLineByItem = new Map();
+            purchaseRequests.forEach(pr => pr.lines.forEach(line => {
+                prLineByItem.set(`${pr.id}|${line.itemId}`, line.id);
+            }));
+            const receiptGroups = new Map();
+            const assignments = [];
+            const attachments = [];
+
+            legacyStock.forEach(stock => {
+                const prNumber = stock.pr || '';
+                const purchaseRequestId = prIdByNumber.get(prNumber.toLowerCase()) || '';
+                const groupKey = `${stock.id || ''}|${prNumber}|${stock.createdAt || ''}`;
+                if (!receiptGroups.has(groupKey)) {
+                    receiptGroups.set(groupKey, {
+                        id: createEntityId('receipt'),
+                        number: stock.id || 'FNG-Unnumbered',
+                        purchaseRequestId,
+                        workflowStatus: 'posted',
+                        receivedAt: toIsoDateTime(stock.createdAt),
+                        lines: []
+                    });
+                }
+                const receipt = receiptGroups.get(groupKey);
+                const itemId = getMappedItem(stock);
+                const item = itemById.get(itemId);
+                const partsPerSet = item?.partsPerSet || Math.max(1, Number.parseInt(stock.partsPerSet || 1, 10) || 1);
+                const partNumber = Number.parseInt(String(stock.partLabel || '').split('/')[0], 10) || 0;
+                const lineId = createEntityId('receipt-line');
+                receipt.lines.push({
+                    id: lineId,
+                    prLineId: prLineByItem.get(`${purchaseRequestId}|${itemId}`) || '',
+                    itemId,
+                    itemSnapshot: {
+                        sku: item?.sku || '',
+                        name: item?.name || stock.item || 'Untitled item',
+                        unit: item?.unit || 'pcs',
+                        partsPerSet
+                    },
+                    partNumber,
+                    receivedQty: Math.max(0, Number.parseInt(stock.qty || 0, 10) || 0),
+                    quantityUnit: partsPerSet > 1 ? 'part' : item?.unit || 'pcs'
+                });
+                (stock.locations || []).forEach(location => assignments.push({
+                    id: createEntityId('assignment'),
+                    receiptLineId: lineId,
+                    palletCode: location.pallet || '',
+                    zoneId: location.zone || 'A',
+                    qty: Math.max(0, Number.parseInt(location.qty || 0, 10) || 0),
+                    quantityUnit: partsPerSet > 1 ? 'part' : item?.unit || 'pcs',
+                    assignedAt: toIsoDateTime(location.createdAt || stock.createdAt)
+                }));
+                (stock.attachedPhotos || []).forEach((photo, index) => {
+                    const isObject = photo && typeof photo === 'object';
+                    attachments.push({
+                        id: isObject && photo.id ? photo.id : createEntityId('attachment'),
+                        receiptLineId: lineId,
+                        fileName: isObject && photo.fileName ? photo.fileName : `warehouse-photo-${index + 1}.jpg`,
+                        mimeType: isObject && photo.mimeType ? photo.mimeType : 'image/jpeg',
+                        size: isObject && photo.size ? photo.size : 0,
+                        createdAt: toIsoDateTime(isObject && photo.createdAt ? photo.createdAt : stock.createdAt),
+                        ...(!isObject && typeof photo === 'string' ? { legacyDataUrl: photo } : {})
+                    });
+                });
+            });
+
+            return normalizeDomainData({
+                schemaVersion: APP_SCHEMA_VERSION,
+                updatedAt: now,
+                categories,
+                units: ['pcs', 'set', 'box', 'm', 'kg'],
+                zones: getDefaultZones(),
+                items,
+                purchaseRequests,
+                receipts: Array.from(receiptGroups.values()),
+                assignments,
+                attachments
+            });
+        }
+
+        function loadOrMigrateDomainData(legacyStock, legacyItems, legacyPrs) {
             try {
-                localStorage.setItem(PR_STORAGE_KEY, JSON.stringify(purchaseRequests));
+                const stored = localStorage.getItem(APP_DATA_STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed.schemaVersion === APP_SCHEMA_VERSION) return normalizeDomainData(parsed);
+                }
+            } catch (error) {
+                console.warn('Unable to load v2 warehouse data:', error);
+            }
+
+            const migrated = migrateLegacyDomainData(legacyItems, legacyPrs, legacyStock);
+            try {
+                localStorage.setItem(APP_DATA_STORAGE_KEY, JSON.stringify(migrated));
+            } catch (error) {
+                console.warn('Unable to save migrated warehouse data:', error);
+            }
+            return migrated;
+        }
+
+        function hydrateMasterItems(data) {
+            const categoryById = new Map(data.categories.map(category => [category.id, category.name]));
+            return data.items.map(item => ({
+                ...item,
+                category: categoryById.get(item.categoryId) || 'General'
+            }));
+        }
+
+        function hydratePurchaseRequests(data) {
+            return data.purchaseRequests.map(pr => ({
+                id: pr.id,
+                number: pr.number,
+                createdAt: formatDomainDateTime(pr.createdAt),
+                status: pr.workflowStatus,
+                items: pr.lines.map(line => ({
+                    lineId: line.id,
+                    itemId: line.itemId,
+                    itemName: line.itemSnapshot.name,
+                    qty: line.orderedQty,
+                    unit: line.unit,
+                    itemType: line.itemSnapshot.itemType,
+                    partsPerSet: line.itemSnapshot.partsPerSet
+                }))
+            }));
+        }
+
+        function hydrateInventory(data, items, prs) {
+            const itemById = new Map(items.map(item => [item.id, item]));
+            const prById = new Map(prs.map(pr => [pr.id, pr]));
+            const assignmentsByLine = new Map();
+            data.assignments.forEach(assignment => {
+                if (!assignmentsByLine.has(assignment.receiptLineId)) assignmentsByLine.set(assignment.receiptLineId, []);
+                assignmentsByLine.get(assignment.receiptLineId).push(assignment);
+            });
+            const attachmentsByLine = new Map();
+            data.attachments.forEach(attachment => {
+                if (!attachmentsByLine.has(attachment.receiptLineId)) attachmentsByLine.set(attachment.receiptLineId, []);
+                attachmentsByLine.get(attachment.receiptLineId).push(attachment);
+            });
+
+            return data.receipts.flatMap(receipt => receipt.lines.map(line => {
+                const item = itemById.get(line.itemId);
+                const partsPerSet = line.itemSnapshot.partsPerSet || item?.partsPerSet || 1;
+                return {
+                    receiptId: receipt.id,
+                    lineId: line.id,
+                    id: receipt.number,
+                    prId: receipt.purchaseRequestId,
+                    pr: prById.get(receipt.purchaseRequestId)?.number || '',
+                    createdAt: formatDomainDateTime(receipt.receivedAt),
+                    itemId: line.itemId,
+                    item: line.itemSnapshot.name || item?.name || 'Untitled item',
+                    partLabel: line.partNumber && partsPerSet > 1 ? `${line.partNumber}/${partsPerSet}` : '',
+                    partsPerSet,
+                    qty: line.receivedQty,
+                    quantityUnit: line.quantityUnit,
+                    isExpanded: false,
+                    locations: (assignmentsByLine.get(line.id) || []).map(assignment => ({
+                        id: assignment.id,
+                        pallet: assignment.palletCode,
+                        zone: assignment.zoneId,
+                        qty: assignment.qty,
+                        quantityUnit: assignment.quantityUnit,
+                        createdAt: formatDomainDateTime(assignment.assignedAt)
+                    })),
+                    attachedPhotos: (attachmentsByLine.get(line.id) || []).map(attachment => ({
+                        id: attachment.id,
+                        fileName: attachment.fileName,
+                        mimeType: attachment.mimeType,
+                        size: attachment.size,
+                        createdAt: formatDomainDateTime(attachment.createdAt),
+                        url: attachment.legacyDataUrl || '',
+                        stored: !attachment.legacyDataUrl
+                    })),
+                    tempPallet: '',
+                    tempZone: 'A',
+                    tempQty: ''
+                };
+            }));
+        }
+
+        function findOrCreateCategoryId(name, categories) {
+            const normalized = String(name || 'General').trim();
+            const existing = categories.find(category => category.name.toLowerCase() === normalized.toLowerCase());
+            if (existing) return existing.id;
+            const id = normalized.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || createEntityId('category');
+            categories.push({ id, name: normalized, isActive: true });
+            return id;
+        }
+
+        function buildDomainDataFromState() {
+            const categories = (appData.categories || getDefaultCategories()).map(category => ({ ...category }));
+            const now = new Date().toISOString();
+            const items = masterItems.map(item => ({
+                id: item.id || createEntityId('item'),
+                sku: item.sku,
+                name: item.name,
+                categoryId: findOrCreateCategoryId(item.category, categories),
+                unit: item.unit,
+                itemType: item.itemType,
+                partsPerSet: item.partsPerSet,
+                isActive: item.isActive !== false,
+                createdAt: toIsoDateTime(item.createdAt || now),
+                updatedAt: toIsoDateTime(item.updatedAt || now)
+            }));
+            const itemById = new Map(items.map(item => [item.id, item]));
+            const purchaseRequestData = purchaseRequests.map(pr => ({
+                id: pr.id || createEntityId('pr'),
+                number: pr.number,
+                workflowStatus: pr.status || 'open',
+                createdAt: toIsoDateTime(pr.createdAt),
+                updatedAt: now,
+                lines: pr.items.map(line => {
+                    const item = itemById.get(line.itemId);
+                    return {
+                        id: line.lineId || createEntityId('pr-line'),
+                        itemId: line.itemId,
+                        orderedQty: Math.max(0, Number.parseInt(line.qty || 0, 10) || 0),
+                        unit: line.unit || (item?.itemType === 'Set' ? 'set' : item?.unit || 'pcs'),
+                        itemSnapshot: {
+                            sku: item?.sku || '',
+                            name: line.itemName || item?.name || 'Untitled item',
+                            unit: item?.unit || line.unit || 'pcs',
+                            itemType: line.itemType || item?.itemType || 'Single',
+                            partsPerSet: line.partsPerSet || item?.partsPerSet || 1
+                        }
+                    };
+                })
+            }));
+
+            const receiptGroups = new Map();
+            const assignments = [];
+            const attachments = [];
+            inventory.forEach(row => {
+                row.receiptId = row.receiptId || createEntityId('receipt');
+                row.lineId = row.lineId || createEntityId('receipt-line');
+                if (!receiptGroups.has(row.receiptId)) {
+                    receiptGroups.set(row.receiptId, {
+                        id: row.receiptId,
+                        number: row.id,
+                        purchaseRequestId: row.prId || '',
+                        workflowStatus: 'posted',
+                        receivedAt: toIsoDateTime(row.createdAt),
+                        lines: []
+                    });
+                }
+                const receipt = receiptGroups.get(row.receiptId);
+                const item = itemById.get(row.itemId);
+                const partNumber = Number.parseInt(String(row.partLabel || '').split('/')[0], 10) || 0;
+                receipt.lines.push({
+                    id: row.lineId,
+                    prLineId: row.prLineId || purchaseRequests.find(pr => pr.id === row.prId)?.items.find(line => line.itemId === row.itemId)?.lineId || '',
+                    itemId: row.itemId,
+                    itemSnapshot: {
+                        sku: item?.sku || '',
+                        name: row.item || item?.name || 'Untitled item',
+                        unit: item?.unit || 'pcs',
+                        partsPerSet: row.partsPerSet || item?.partsPerSet || 1
+                    },
+                    partNumber,
+                    receivedQty: Math.max(0, Number.parseInt(row.qty || 0, 10) || 0),
+                    quantityUnit: row.quantityUnit || ((row.partsPerSet || 1) > 1 ? 'part' : item?.unit || 'pcs')
+                });
+                row.locations.forEach(location => {
+                    location.id = location.id || createEntityId('assignment');
+                    assignments.push({
+                        id: location.id,
+                        receiptLineId: row.lineId,
+                        palletCode: location.pallet,
+                        zoneId: location.zone,
+                        qty: Math.max(0, Number.parseInt(location.qty || 0, 10) || 0),
+                        quantityUnit: location.quantityUnit || row.quantityUnit || 'pcs',
+                        assignedAt: toIsoDateTime(location.createdAt)
+                    });
+                });
+                row.attachedPhotos.forEach(photo => {
+                    if (!photo || typeof photo !== 'object') return;
+                    attachments.push({
+                        id: photo.id || createEntityId('attachment'),
+                        receiptLineId: row.lineId,
+                        fileName: photo.fileName || 'warehouse-photo.jpg',
+                        mimeType: photo.mimeType || 'image/jpeg',
+                        size: Number.parseInt(photo.size || 0, 10) || 0,
+                        createdAt: toIsoDateTime(photo.createdAt),
+                        ...(!photo.stored && String(photo.url || '').startsWith('data:') ? { legacyDataUrl: photo.url } : {})
+                    });
+                });
+            });
+
+            return normalizeDomainData({
+                schemaVersion: APP_SCHEMA_VERSION,
+                updatedAt: now,
+                categories,
+                units: appData.units,
+                zones: appData.zones,
+                items,
+                purchaseRequests: purchaseRequestData,
+                receipts: Array.from(receiptGroups.values()),
+                assignments,
+                attachments
+            });
+        }
+
+        function saveDomainState() {
+            try {
+                appData = buildDomainDataFromState();
+                localStorage.setItem(APP_DATA_STORAGE_KEY, JSON.stringify(appData));
                 return true;
             } catch (error) {
-                console.warn('Unable to save PR list:', error);
+                console.warn('Unable to save warehouse data:', error);
                 return false;
+            }
+        }
+
+        function openPhotoDatabase() {
+            return new Promise((resolve, reject) => {
+                if (!window.indexedDB) {
+                    reject(new Error('IndexedDB is unavailable.'));
+                    return;
+                }
+                const request = indexedDB.open(PHOTO_DB_NAME, 1);
+                request.onupgradeneeded = () => {
+                    const database = request.result;
+                    if (!database.objectStoreNames.contains(PHOTO_STORE_NAME)) {
+                        database.createObjectStore(PHOTO_STORE_NAME);
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error || new Error('Unable to open photo storage.'));
+            });
+        }
+
+        async function writePhotoBlob(photoId, blob) {
+            const database = await openPhotoDatabase();
+            return new Promise((resolve, reject) => {
+                const transaction = database.transaction(PHOTO_STORE_NAME, 'readwrite');
+                transaction.objectStore(PHOTO_STORE_NAME).put(blob, photoId);
+                transaction.oncomplete = () => {
+                    database.close();
+                    resolve(true);
+                };
+                transaction.onerror = () => {
+                    database.close();
+                    reject(transaction.error || new Error('Unable to save photo.'));
+                };
+            });
+        }
+
+        async function readPhotoBlob(photoId) {
+            const database = await openPhotoDatabase();
+            return new Promise((resolve, reject) => {
+                const transaction = database.transaction(PHOTO_STORE_NAME, 'readonly');
+                const request = transaction.objectStore(PHOTO_STORE_NAME).get(photoId);
+                request.onsuccess = () => resolve(request.result || null);
+                request.onerror = () => reject(request.error || new Error('Unable to read photo.'));
+                transaction.oncomplete = () => database.close();
+            });
+        }
+
+        async function deletePhotoBlob(photoId) {
+            const database = await openPhotoDatabase();
+            return new Promise((resolve, reject) => {
+                const transaction = database.transaction(PHOTO_STORE_NAME, 'readwrite');
+                transaction.objectStore(PHOTO_STORE_NAME).delete(photoId);
+                transaction.oncomplete = () => {
+                    database.close();
+                    resolve(true);
+                };
+                transaction.onerror = () => {
+                    database.close();
+                    reject(transaction.error || new Error('Unable to delete photo.'));
+                };
+            });
+        }
+
+        async function initializeAttachmentStorage() {
+            let shouldPersistMetadata = false;
+            let shouldRender = false;
+            for (const item of inventory) {
+                for (const photo of item.attachedPhotos) {
+                    if (!photo || typeof photo !== 'object') continue;
+                    try {
+                        if (photo.url && photo.url.startsWith('data:') && !photo.stored) {
+                            const blob = await fetch(photo.url).then(response => response.blob());
+                            await writePhotoBlob(photo.id, blob);
+                            photo.stored = true;
+                            shouldPersistMetadata = true;
+                        } else if (!photo.url && photo.stored) {
+                            const blob = await readPhotoBlob(photo.id);
+                            if (blob) {
+                                photo.url = URL.createObjectURL(blob);
+                                shouldRender = true;
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Unable to initialize attachment ${photo.id}:`, error);
+                    }
+                }
+            }
+            if (shouldPersistMetadata) saveDomainState();
+            if (shouldRender) renderInventory();
+        }
+
+        function revokeAttachmentUrl(photo) {
+            if (photo && typeof photo === 'object' && String(photo.url || '').startsWith('blob:')) {
+                URL.revokeObjectURL(photo.url);
             }
         }
 
@@ -1974,9 +3087,9 @@
                 const requested = prLines.reduce((sum, row) => sum + (Number.parseInt(row.line.qty || 0, 10) || 0), 0);
                 const received = prLines.reduce((sum, row) => sum + getReceivedSetsForPrLine(row.pr.id, row.line), 0);
                 const itemEntries = inventory.filter(item => item.itemId === masterItem.id || item.item.toLowerCase() === masterItem.name.toLowerCase());
-                const assigned = itemEntries.reduce((sum, item) => sum + totalAbbr(item), 0);
+                const assigned = prLines.reduce((sum, row) => sum + getAssignedSetsForPrLine(row.pr.id, row.line), 0);
                 const remaining = requested - received;
-                const prs = new Set(prLines.map(row => row.pr.id));
+                const prs = new Set(prLines.map(row => row.pr.number));
                 const fngs = new Set(itemEntries.map(item => item.id).filter(Boolean));
                 const status = remaining === 0 && requested > 0 ? 'Complete' : remaining < 0 ? 'Over-received' : 'Open';
 
@@ -1999,13 +3112,12 @@
         function getPrRows() {
             return purchaseRequests.map(pr => {
                 const requested = pr.items.reduce((sum, line) => sum + (Number.parseInt(line.qty || 0, 10) || 0), 0);
-                const receivedItems = inventory.filter(item => (item.pr || '') === pr.id);
                 const received = pr.items.reduce((sum, line) => sum + getReceivedSetsForPrLine(pr.id, line), 0);
-                const assigned = receivedItems.reduce((sum, item) => sum + totalAbbr(item), 0);
+                const assigned = pr.items.reduce((sum, line) => sum + getAssignedSetsForPrLine(pr.id, line), 0);
                 const remaining = requested - received;
                 const status = remaining === 0 ? 'Complete' : remaining < 0 ? 'Over-received' : 'Open';
                 return {
-                    pr: pr.id,
+                    pr: pr.number,
                     items: pr.items.length,
                     requested,
                     received,
@@ -2024,9 +3136,11 @@
         function syncItemTypeFields() {
             const typeInput = document.getElementById('item-type-input');
             const partsInput = document.getElementById('item-parts-input');
+            const partsField = document.getElementById('item-parts-field');
             if (!typeInput || !partsInput) return;
 
             const isSet = typeInput.value === 'Set';
+            partsField?.classList.toggle('hidden', !isSet);
             partsInput.disabled = !isSet;
             partsInput.min = isSet ? '2' : '1';
             if (!isSet) {
@@ -2036,7 +3150,7 @@
             }
         }
 
-        function createMasterItem() {
+        function saveItemFromModal() {
             const nameInput = document.getElementById('item-name-input');
             const skuInput = document.getElementById('item-sku-input');
             const unitInput = document.getElementById('item-unit-input');
@@ -2044,6 +3158,7 @@
             const typeInput = document.getElementById('item-type-input');
             const partsInput = document.getElementById('item-parts-input');
             const name = (nameInput?.value || '').trim();
+            const sku = (skuInput?.value || '').trim();
             const itemType = typeInput?.value === 'Set' ? 'Set' : 'Single';
             const partsPerSet = itemType === 'Set' ? Number.parseInt(partsInput?.value || 1, 10) : 1;
 
@@ -2051,8 +3166,16 @@
                 showAlertModal('Please enter an item name.', 'Item Required');
                 return;
             }
-            if (masterItems.some(item => item.name.toLowerCase() === name.toLowerCase())) {
+            if (!sku) {
+                showAlertModal('Please enter a SKU or item code.', 'SKU Required');
+                return;
+            }
+            if (masterItems.some(item => item.id !== editingItemId && item.name.toLowerCase() === name.toLowerCase())) {
                 showAlertModal('This item already exists in Item List.', 'Duplicate Item');
+                return;
+            }
+            if (masterItems.some(item => item.id !== editingItemId && item.sku.toLowerCase() === sku.toLowerCase())) {
+                showAlertModal('This SKU or item code is already in use.', 'Duplicate SKU');
                 return;
             }
             if (itemType === 'Set' && (Number.isNaN(partsPerSet) || partsPerSet < 2)) {
@@ -2060,27 +3183,45 @@
                 return;
             }
 
-            masterItems.push({
-                id: `ITEM-${String(masterItems.length + 1).padStart(3, '0')}`,
+            const existingItem = editingItemId ? masterItems.find(item => item.id === editingItemId) : null;
+            const nextItem = {
+                id: existingItem?.id || createEntityId('item'),
                 name,
-                sku: (skuInput?.value || `SKU-${String(masterItems.length + 1).padStart(3, '0')}`).trim(),
+                sku,
                 unit: (unitInput?.value || 'pcs').trim(),
                 category: (categoryInput?.value || 'General').trim(),
                 itemType,
-                partsPerSet
-            });
+                partsPerSet,
+                isActive: existingItem?.isActive !== false,
+                createdAt: existingItem?.createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            if (existingItem) {
+                masterItems = masterItems.map(item => item.id === existingItem.id ? nextItem : item);
+            } else {
+                masterItems.push(nextItem);
+            }
 
             saveMasterItems();
             nameInput.value = '';
             if (skuInput) skuInput.value = '';
-            if (unitInput) unitInput.value = 'pcs';
-            if (categoryInput) categoryInput.value = '';
-            if (typeInput) typeInput.value = 'Single';
+            selectFormValue('item-unit-input', 'pcs', 'pcs');
+            selectFormValue('item-category-input', 'Aluminum', 'Aluminum');
+            selectFormValue('item-type-input', 'Single', 'Single Item');
             if (partsInput) partsInput.value = '1';
+            syncItemTypeFields();
+            closeItemModal();
             renderSecondaryViews();
+            renderInventory();
+            showAlertModal(
+                existingItem ? `"${name}" has been updated.` : `"${name}" has been added to Item Master.`,
+                existingItem ? 'Item Updated' : 'Item Created'
+            );
         }
 
         function confirmRemoveMasterItem(itemId) {
+            closeItemActionMenus();
             const item = masterItems.find(masterItem => masterItem.id === itemId);
             if (!item) return;
 
@@ -2128,12 +3269,14 @@
                 return;
             }
 
-            let pr = purchaseRequests.find(request => request.id.toLowerCase() === prId.toLowerCase());
+            let pr = purchaseRequests.find(request => request.number.toLowerCase() === prId.toLowerCase());
+            const isNewPr = !pr;
             if (!pr) {
                 pr = {
-                    id: prId,
+                    id: createEntityId('pr'),
+                    number: prId,
                     createdAt: getCurrentFormattedDateTime(),
-                    status: 'Open',
+                    status: 'open',
                     items: []
                 };
                 purchaseRequests.unshift(pr);
@@ -2143,17 +3286,33 @@
             if (existingLine) {
                 existingLine.qty += qty;
             } else {
-                pr.items.push({ itemId: item.id, itemName: item.name, qty, itemType: item.itemType, partsPerSet: item.partsPerSet });
+                pr.items.push({
+                    lineId: createEntityId('pr-line'),
+                    itemId: item.id,
+                    itemName: item.name,
+                    qty,
+                    unit: item.itemType === 'Set' ? 'set' : item.unit,
+                    itemType: item.itemType,
+                    partsPerSet: item.partsPerSet
+                });
             }
 
             savePurchaseRequests();
             if (prInput) prInput.value = '';
             if (qtyInput) qtyInput.value = '';
             renderSecondaryViews();
+            showAlertModal(
+                isNewPr
+                    ? `PR "${pr.number}" has been created with ${qty} ${item.name}.`
+                    : `${qty} ${item.name} has been added to PR "${pr.number}".`,
+                isNewPr ? 'PR Created' : 'PR Updated'
+            );
         }
 
-        function confirmRemovePurchaseRequest(prId) {
-            const receivedCount = inventory.filter(item => (item.pr || '') === prId).length;
+        function confirmRemovePurchaseRequest(prNumber) {
+            const pr = purchaseRequests.find(request => request.number.toLowerCase() === String(prNumber).toLowerCase());
+            if (!pr) return;
+            const receivedCount = inventory.filter(item => item.prId === pr.id || (item.pr || '') === pr.number).length;
             if (receivedCount > 0) {
                 showAlertModal(
                     `This PR has ${receivedCount} stock received record${receivedCount === 1 ? '' : 's'}. Remove those stock received records first.`,
@@ -2162,19 +3321,90 @@
                 return;
             }
 
-            const pr = purchaseRequests.find(request => request.id === prId);
-            if (!pr) return;
-
             showConfirmDialog(
                 'Remove Purchase Request',
-                `Are you sure you want to remove PR "${pr.id}"?`,
+                `Are you sure you want to remove PR "${pr.number}"?`,
                 () => {
-                    purchaseRequests = purchaseRequests.filter(request => request.id !== prId);
+                    purchaseRequests = purchaseRequests.filter(request => request.id !== pr.id);
                     savePurchaseRequests();
                     renderSecondaryViews();
                     renderInventory();
                 }
             );
+        }
+
+        function renderItemModalForm(item = null) {
+            const container = document.getElementById('item-modal-form');
+            if (!container) return;
+            const nameValue = item ? item.name : '';
+            const skuValue = item ? item.sku : '';
+            const categoryValue = item ? item.category : 'Aluminum';
+            const unitValue = item ? item.unit : 'pcs';
+            const typeValue = item ? item.itemType : 'Single';
+            const typeLabel = typeValue === 'Set' ? 'Set Item' : 'Single Item';
+            const partsValue = item ? item.partsPerSet : 1;
+            const categoryOptions = appData.categories
+                .filter(category => category.isActive !== false)
+                .map(category => ({ value: category.name, label: category.name }));
+            const unitOptions = appData.units.map(unit => ({ value: unit, label: unit }));
+
+            container.innerHTML = `
+                <div class="field-group">
+                    <label class="field-title" for="item-name-input">Item Name <span class="required-mark">*</span></label>
+                    <input id="item-name-input" class="filter-control" value="${escapeHtml(nameValue)}" placeholder="Aluminum Frame">
+                </div>
+                <div class="field-group">
+                    <label class="field-title" for="item-sku-input">SKU / Item Code <span class="required-mark">*</span></label>
+                    <input id="item-sku-input" class="filter-control" value="${escapeHtml(skuValue)}" placeholder="AL-FR-001">
+                </div>
+                <div class="field-group">
+                    <label class="field-title" for="item-category-input">Category</label>
+                    ${renderCustomFormDropdown('item-category-input', categoryValue, categoryOptions, 'selectFormDropdown', 'Aluminum')}
+                </div>
+                <div class="field-group">
+                    <label class="field-title" for="item-unit-input">Unit</label>
+                    ${renderCustomFormDropdown('item-unit-input', unitValue, unitOptions, 'selectFormDropdown', 'pcs')}
+                </div>
+                <div class="field-group">
+                    <label class="field-title" for="item-type-input">Item Type</label>
+                    ${renderCustomFormDropdown('item-type-input', typeValue, [{ value: 'Single', label: 'Single Item' }, { value: 'Set', label: 'Set Item' }], 'selectItemTypeDropdown', typeLabel)}
+                </div>
+                <div id="item-parts-field" class="field-group parts-per-set-field hidden">
+                    <label class="field-title" for="item-parts-input">Parts Per Set</label>
+                    <input id="item-parts-input" type="number" min="1" class="filter-control" value="${escapeHtml(partsValue)}" placeholder="Enter parts">
+                    <div class="parts-set-note">Only if Set</div>
+                </div>
+            `;
+            syncItemTypeFields();
+        }
+
+        function openItemModal(itemId = null) {
+            closeItemActionMenus();
+            editingItemId = itemId;
+            const item = itemId ? masterItems.find(masterItem => masterItem.id === itemId) : null;
+            renderItemModalForm(item);
+            const title = document.querySelector('#item-modal .modal-title');
+            const kicker = document.getElementById('item-modal-kicker');
+            const submitText = document.querySelector('#item-modal-submit span');
+            if (title) title.innerText = item ? 'Edit Item' : 'Create New Item';
+            if (kicker) kicker.innerText = item ? 'Update master data used throughout procurement' : 'Add master data for procurement and receiving';
+            if (submitText) submitText.innerText = item ? 'Save Changes' : 'Create Item';
+            const modal = document.getElementById('item-modal');
+            modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                modal.classList.add('active');
+            });
+        }
+
+        function closeItemModal() {
+            const modal = document.getElementById('item-modal');
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.classList.add('hidden', 'opacity-0', 'pointer-events-none');
+                modal.classList.remove('flex');
+                editingItemId = null;
+            }, 300);
         }
 
         // Ripple Effect Click Transition
@@ -2229,7 +3459,7 @@
         function renderNav() {
             const navHtml = navItems.map(item => `
                 <button type="button" onclick="createRipple(event); switchView('${item.id}')" class="ripple-btn nav-btn ${currentView === item.id ? 'active' : ''}">
-                    <span class="nav-icon">${escapeHtml(item.icon)}</span>
+                    <span class="nav-icon">${renderNavIcon(item.id)}</span>
                     <span>${escapeHtml(item.label)}</span>
                 </button>
             `).join('');
@@ -2240,7 +3470,19 @@
             if (topbarNav) topbarNav.innerHTML = navHtml;
         }
 
+        function renderNavIcon(viewId) {
+            const icons = {
+                dashboard: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>',
+                stock: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Z"></path><path d="m4 7v10l8 4 8-4V7"></path><path d="M12 11v10"></path></svg>',
+                report: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>',
+                items: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>',
+                prs: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4V2h6v2"></path><path d="M9 10h6"></path><path d="M9 14h6"></path></svg>'
+            };
+            return icons[viewId] || '';
+        }
+
         function switchView(viewId) {
+            if (!validViewIds.includes(viewId)) viewId = 'dashboard';
             currentView = viewId;
             document.querySelectorAll('.view-section').forEach(section => {
                 section.classList.toggle('hidden', section.id !== `view-${viewId}`);
@@ -2249,6 +3491,13 @@
             renderNav();
             renderSecondaryViews();
             if (viewId === 'stock') renderInventory();
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('view', viewId);
+                window.history.replaceState(null, '', url);
+            } catch (error) {
+                // The active view still works when URL history is unavailable.
+            }
         }
 
         function statCard(label, value, note = '') {
@@ -2270,11 +3519,11 @@
                 const status = getItemStatus(item);
                 return `
                     <tr>
-                        <td>${escapeHtml(item.id)}</td>
-                        <td>${escapeHtml(item.pr || '-')}</td>
+                        <td class="data-code">${escapeHtml(item.id)}</td>
+                        <td class="data-code">${escapeHtml(item.pr || '-')}</td>
                         <td>${escapeHtml(item.item)}</td>
-                        <td>${escapeHtml(item.qty)}</td>
-                        <td>${escapeHtml(totalAbbr(item))}</td>
+                        <td class="data-number">${escapeHtml(item.qty)}</td>
+                        <td class="data-number">${escapeHtml(totalAbbr(item))}</td>
                         <td>${statusPill(status)}</td>
                     </tr>
                 `;
@@ -2282,22 +3531,18 @@
 
             const zoneRows = getZoneSummary().map(row => `
                 <tr>
-                    <td>${escapeHtml(row.zone === 'Loading' ? 'Loading' : `Zone ${row.zone}`)}</td>
-                    <td>${escapeHtml(row.qty)}</td>
+                    <td>${escapeHtml(row.zone)}</td>
+                    <td class="data-number">${escapeHtml(row.qty)}</td>
                 </tr>
             `).join('');
 
             container.innerHTML = `
                 ${renderPageHeader('Dashboard', 'Track stock receiving, assignment progress, and warehouse zones')}
                 <div class="stat-grid">
-                    ${statCard('Transactions', inventory.length, 'Stock received rows')}
-                    ${statCard('Item Types', totals.uniqueItems, 'Unique item names')}
-                    ${statCard('Received Qty', totals.totalQty, 'Total pieces')}
-                    ${statCard('Remaining Qty', totals.remainingQty, 'Still needs assignment')}
-                    ${statCard('Assigned Qty', totals.assignedQty, 'Placed in zones')}
-                    ${statCard('PR Count', purchaseRequests.length, 'Purchase requests')}
-                    ${statCard('Completed', totals.completeItems, 'Fully assigned')}
-                    ${statCard('Over Assigned', totals.overItems, 'Needs review')}
+                    ${statCard('Transactions', inventory.length, `${purchaseRequests.length} PRs / ${totals.uniqueItems} item types`)}
+                    ${statCard('Received Qty', totals.totalQty, `${totals.completeItems} completed lines`)}
+                    ${statCard('Assigned Qty', totals.assignedQty, 'Placed in warehouse zones')}
+                    ${statCard('Remaining Qty', totals.remainingQty, totals.overItems ? `${totals.overItems} lines need review` : 'No over-assigned lines')}
                 </div>
                 <div class="data-panel">
                     <div class="panel-header">
@@ -2307,8 +3552,8 @@
                         </div>
                     </div>
                     <div class="data-table-wrap">
-                        <table class="data-table">
-                            <thead><tr><th>ID</th><th>PR#</th><th>Item</th><th>Qty</th><th>Assigned</th><th>Status</th></tr></thead>
+                        <table class="data-table dashboard-recent-table">
+                            <thead><tr><th>ID</th><th>PR#</th><th>Item</th><th class="data-number">Qty</th><th class="data-number">Assigned</th><th>Status</th></tr></thead>
                             <tbody>${recentRows || '<tr><td colspan="6">No stock received yet.</td></tr>'}</tbody>
                         </table>
                     </div>
@@ -2321,8 +3566,8 @@
                         </div>
                     </div>
                     <div class="data-table-wrap">
-                        <table class="data-table">
-                            <thead><tr><th>Zone</th><th>Assigned Qty</th></tr></thead>
+                        <table class="data-table dashboard-zone-table">
+                            <thead><tr><th>Zone</th><th class="data-number">Assigned Qty</th></tr></thead>
                             <tbody>${zoneRows}</tbody>
                         </table>
                     </div>
@@ -2359,6 +3604,68 @@
             );
         }
 
+        function handleItemMasterSearch(value) {
+            itemMasterFilters.search = String(value || '');
+            renderItemList();
+            const input = document.getElementById('item-master-search');
+            if (input) {
+                input.focus();
+                const end = input.value.length;
+                input.setSelectionRange(end, end);
+            }
+        }
+
+        function selectItemMasterFilterDropdown(field, id, value, label, event) {
+            selectFormDropdown(id, value, label, event);
+            itemMasterFilters[field] = value;
+            renderItemList();
+        }
+
+        function renderItemActionMenu(item) {
+            return `
+                <div id="item-action-menu-${escapeHtml(item.id)}" class="item-action-menu hidden" onclick="event.stopPropagation()">
+                    <button type="button" onclick="viewMasterItem('${jsString(item.id)}')" class="item-menu-btn">View Details</button>
+                    <button type="button" onclick="openItemModal('${jsString(item.id)}')" class="item-menu-btn">Edit Item</button>
+                    <button type="button" onclick="confirmRemoveMasterItem('${jsString(item.id)}')" class="item-menu-btn danger">Delete</button>
+                </div>
+            `;
+        }
+
+        function closeItemActionMenus() {
+            document.querySelectorAll('.item-action-menu').forEach(menu => {
+                menu.classList.add('hidden');
+            });
+            document.querySelectorAll('.item-action-menu-open').forEach(panel => {
+                panel.classList.remove('item-action-menu-open', 'dropdown-open');
+            });
+            openItemActionMenuId = null;
+        }
+
+        function toggleItemActionMenu(itemId, event) {
+            event.stopPropagation();
+            const menu = document.getElementById(`item-action-menu-${itemId}`);
+            if (!menu) return;
+            const panel = menu.closest('.data-panel');
+            const shouldOpen = menu.classList.contains('hidden') || openItemActionMenuId !== itemId;
+            closeItemActionMenus();
+            if (shouldOpen) {
+                menu.classList.remove('hidden');
+                panel?.classList.add('item-action-menu-open', 'dropdown-open');
+                openItemActionMenuId = itemId;
+            }
+        }
+
+        function viewMasterItem(itemId) {
+            const item = masterItems.find(masterItem => masterItem.id === itemId);
+            if (!item) return;
+            closeItemActionMenus();
+            const stock = getItemRows().find(row => row.item.toLowerCase() === item.name.toLowerCase());
+            showAlertModal(
+                `SKU: ${item.sku}\nCategory: ${item.category}\nUnit: ${item.unit}\nType: ${item.itemType}${item.partsPerSet > 1 ? ` (${item.partsPerSet} parts)` : ''}\nPR Sets: ${stock ? stock.requested : 0}\nRemaining: ${stock ? stock.remaining : 0}`,
+                item.name
+            );
+        }
+
         function renderReport() {
             const container = document.getElementById('view-report');
             if (!container) return;
@@ -2370,14 +3677,14 @@
                 const status = getItemStatus(item);
                 return `
                     <tr>
-                        <td>${escapeHtml(item.id)}</td>
-                        <td>${escapeHtml(item.pr || '-')}</td>
+                        <td class="data-code">${escapeHtml(item.id)}</td>
+                        <td class="data-code">${escapeHtml(item.pr || '-')}</td>
                         <td>${escapeHtml(item.createdAt)}</td>
                         <td>${escapeHtml(item.item)}</td>
                         <td>${escapeHtml(item.partLabel || '-')}</td>
-                        <td>${escapeHtml(item.qty)}</td>
-                        <td>${escapeHtml(totalAbbr(item))}</td>
-                        <td>${escapeHtml(item.qty - totalAbbr(item))}</td>
+                        <td class="data-number">${escapeHtml(item.qty)}</td>
+                        <td class="data-number">${escapeHtml(totalAbbr(item))}</td>
+                        <td class="data-number">${escapeHtml(item.qty - totalAbbr(item))}</td>
                         <td>${statusPill(status)}</td>
                     </tr>
                 `;
@@ -2424,7 +3731,7 @@
                 <div class="data-panel">
                     <div class="data-table-wrap">
                         <table class="data-table">
-                            <thead><tr><th>ID</th><th>PR#</th><th>Date</th><th>Item</th><th>Part</th><th>Qty</th><th>Assigned</th><th>Remain</th><th>Status</th></tr></thead>
+                            <thead><tr><th>ID</th><th>PR#</th><th>Date</th><th>Item</th><th>Part</th><th class="data-number">Qty</th><th class="data-number">Assigned</th><th class="data-number">Remain</th><th>Status</th></tr></thead>
                             <tbody>${rowHtml || '<tr><td colspan="9">No report data for these filters.</td></tr>'}</tbody>
                         </table>
                     </div>
@@ -2437,82 +3744,141 @@
             if (!container) return;
 
             const stockRows = getItemRows();
-            const itemRows = masterItems.map(item => {
+            const categoryOptions = Array.from(new Set(masterItems.map(item => item.category).filter(Boolean))).sort();
+            const filteredItems = masterItems.filter(item => {
                 const stock = stockRows.find(row => row.item.toLowerCase() === item.name.toLowerCase());
+                const query = itemMasterFilters.search.toLowerCase().trim();
+                const searchMatch = !query
+                    || item.name.toLowerCase().includes(query)
+                    || item.sku.toLowerCase().includes(query)
+                    || item.category.toLowerCase().includes(query);
+                const categoryMatch = !itemMasterFilters.category || item.category === itemMasterFilters.category;
+                const typeMatch = !itemMasterFilters.type || item.itemType === itemMasterFilters.type;
+                return searchMatch && categoryMatch && typeMatch;
+            });
+            const itemRows = filteredItems.map(item => {
+                const stock = stockRows.find(row => row.item.toLowerCase() === item.name.toLowerCase());
+                const typeText = item.partsPerSet > 1 ? `${item.itemType} - ${item.partsPerSet} parts` : item.itemType;
                 return `
                 <tr>
-                    <td>${escapeHtml(item.name)}</td>
-                    <td>${escapeHtml(item.sku)}</td>
-                    <td>${escapeHtml(item.unit)}</td>
-                    <td>${escapeHtml(item.category)}</td>
-                    <td>${escapeHtml(item.itemType)}</td>
-                    <td>${escapeHtml(item.partsPerSet > 1 ? `${item.partsPerSet} parts` : '-')}</td>
-                    <td>${escapeHtml(stock ? stock.requested : 0)}</td>
-                    <td>${escapeHtml(stock ? stock.received : 0)}</td>
-                    <td>${escapeHtml(stock ? stock.remaining : 0)}</td>
-                    <td>${statusPill(stock ? stock.status : 'Open')}</td>
                     <td>
-                        <button onclick="createRipple(event); confirmRemoveMasterItem('${jsString(item.id)}')" class="ripple-btn remove-btn text-red-400 hover:text-red-300 bg-red-950/40 hover:bg-red-950 rounded border border-red-900/50 transition-all text-center">Remove</button>
+                        <div class="item-main-cell">
+                            <span class="item-main-name">${escapeHtml(item.name)}</span>
+                            <span class="item-main-unit">Unit: ${escapeHtml(item.unit)}</span>
+                        </div>
+                    </td>
+                    <td><span class="item-code">${escapeHtml(item.sku)}</span></td>
+                    <td>${escapeHtml(item.category)}</td>
+                    <td>${escapeHtml(typeText)}</td>
+                    <td class="data-number">${escapeHtml(stock ? stock.requested : 0)}</td>
+                    <td class="data-number">${escapeHtml(stock ? stock.received : 0)}</td>
+                    <td class="data-number">${escapeHtml(stock ? stock.remaining : 0)}</td>
+                    <td>${statusPill(stock ? stock.status : 'Open')}</td>
+                    <td class="item-action-cell">
+                        <button onclick="createRipple(event); toggleItemActionMenu('${jsString(item.id)}', event)" class="ripple-btn item-action-btn" aria-label="Item actions" title="Item actions">...</button>
+                        ${renderItemActionMenu(item)}
                     </td>
                 </tr>
                 `;
             }).join('');
+            const mobileCards = filteredItems.map(item => {
+                const stock = stockRows.find(row => row.item.toLowerCase() === item.name.toLowerCase());
+                const typeText = item.partsPerSet > 1 ? `${item.itemType} - ${item.partsPerSet} parts` : item.itemType;
+                return `
+                    <div class="item-mobile-card">
+                        <div class="item-mobile-card-head">
+                            <div class="item-main-cell">
+                                <span class="item-main-name">${escapeHtml(item.name)}</span>
+                                <span class="item-code">${escapeHtml(item.sku)}</span>
+                            </div>
+                            <div class="item-action-cell">
+                                <button onclick="createRipple(event); toggleItemActionMenu('${jsString(item.id)}', event)" class="ripple-btn item-action-btn" aria-label="Item actions" title="Item actions">...</button>
+                                ${renderItemActionMenu(item)}
+                            </div>
+                        </div>
+                        <div class="item-mobile-meta">
+                            <div>
+                                <div class="item-mobile-label">Category</div>
+                                <div class="item-mobile-value">${escapeHtml(item.category)}</div>
+                            </div>
+                            <div>
+                                <div class="item-mobile-label">Type</div>
+                                <div class="item-mobile-value">${escapeHtml(typeText)}</div>
+                            </div>
+                            <div>
+                                <div class="item-mobile-label">Unit</div>
+                                <div class="item-mobile-value">${escapeHtml(item.unit)}</div>
+                            </div>
+                        </div>
+                        <div class="item-mobile-stats">
+                            <div class="item-mobile-stat">
+                                <div class="item-mobile-label">PR</div>
+                                <div class="item-mobile-value">${escapeHtml(stock ? stock.requested : 0)}</div>
+                            </div>
+                            <div class="item-mobile-stat">
+                                <div class="item-mobile-label">Received</div>
+                                <div class="item-mobile-value">${escapeHtml(stock ? stock.received : 0)}</div>
+                            </div>
+                            <div class="item-mobile-stat">
+                                <div class="item-mobile-label">Remain</div>
+                                <div class="item-mobile-value">${escapeHtml(stock ? stock.remaining : 0)}</div>
+                            </div>
+                        </div>
+                        <div>${statusPill(stock ? stock.status : 'Open')}</div>
+                    </div>
+                `;
+            }).join('');
+            const totals = stockRows.reduce((summary, row) => {
+                summary.requested += row.requested;
+                summary.received += row.received;
+                summary.remaining += row.remaining;
+                return summary;
+            }, { requested: 0, received: 0, remaining: 0 });
 
             container.innerHTML = `
-                ${renderPageHeader('Item List', 'Create master items before adding them to purchase requests')}
-                <div class="data-panel">
-                    <div class="panel-header">
-                        <div>
-                            <div class="panel-title">Create Item</div>
-                            <div class="panel-subtitle">Item Master is the first step in the workflow</div>
-                        </div>
-                    </div>
-                    <div class="p-4 report-filters">
-                        <div class="field-group">
-                            <label class="field-title" for="item-name-input">Item Name</label>
-                            <input id="item-name-input" class="filter-control" placeholder="Enter item name">
-                        </div>
-                        <div class="field-group">
-                            <label class="field-title" for="item-sku-input">SKU / Item Code</label>
-                            <input id="item-sku-input" class="filter-control" placeholder="Enter SKU or code">
-                        </div>
-                        <div class="field-group">
-                            <label class="field-title" for="item-unit-input">Unit</label>
-                            <input id="item-unit-input" class="filter-control" value="pcs" placeholder="Enter unit">
-                        </div>
-                        <div class="field-group">
-                            <label class="field-title" for="item-category-input">Category</label>
-                            <input id="item-category-input" class="filter-control" placeholder="Enter category">
-                        </div>
-                        <div class="field-group">
-                            <label class="field-title" for="item-type-input">Item Type</label>
-                            ${renderCustomFormDropdown('item-type-input', 'Single', [{ value: 'Single', label: 'Single item' }, { value: 'Set', label: 'Set item' }], 'selectItemTypeDropdown', 'Single item')}
-                        </div>
-                        <div class="field-group">
-                            <label class="field-title" for="item-parts-input">Parts Per Set</label>
-                            <input id="item-parts-input" type="number" min="1" class="filter-control" value="1" placeholder="Enter parts">
-                        </div>
-                    </div>
-                    <div class="px-4 pb-4">
-                        <button onclick="createRipple(event); createMasterItem()" class="ripple-btn new-transaction-btn toolbar-new-btn">
-                            <span class="plus-sign">+</span>
-                            <span>Create Item</span>
-                        </button>
-                    </div>
+                ${renderPageHeader('Item Master', 'Manage items used throughout procurement')}
+                <div class="stat-grid">
+                    ${statCard('Total Items', masterItems.length, 'Master records')}
+                    ${statCard('PR Sets', totals.requested, 'Requested sets')}
+                    ${statCard('Received', totals.received, 'Received sets')}
+                    ${statCard('Remaining', totals.remaining, 'Open sets')}
                 </div>
                 <div class="data-panel">
                     <div class="panel-header">
                         <div>
-                            <div class="panel-title">Item Master</div>
-                            <div class="panel-subtitle">${masterItems.length} item${masterItems.length === 1 ? '' : 's'} available for PR creation</div>
+                            <div class="panel-title">Items</div>
+                            <div class="panel-subtitle">${filteredItems.length} of ${masterItems.length} item${masterItems.length === 1 ? '' : 's'} shown</div>
                         </div>
+                        <button onclick="createRipple(event); openItemModal()" class="ripple-btn filter-action-btn primary item-create-btn" aria-label="Create new item">
+                            <svg class="filter-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                            <span>New Item</span>
+                        </button>
                     </div>
-                    <div class="data-table-wrap">
-                        <table class="data-table">
-                            <thead><tr><th>Item</th><th>SKU</th><th>Unit</th><th>Category</th><th>Type</th><th>Parts</th><th>PR Sets</th><th>Received Sets</th><th>Remaining Sets</th><th>Status</th><th>Action</th></tr></thead>
-                            <tbody>${itemRows || '<tr><td colspan="11">No items yet.</td></tr>'}</tbody>
+                    <div class="item-master-toolbar">
+                        <div class="field-group">
+                            <label class="field-title" for="item-master-search">Search</label>
+                            <input id="item-master-search" class="filter-control" value="${escapeHtml(itemMasterFilters.search)}" oninput="handleItemMasterSearch(this.value)" placeholder="Search by item name or SKU...">
+                        </div>
+                        <div class="field-group">
+                            <label class="field-title" for="item-category-filter">Category</label>
+                            ${renderCustomFormDropdown('item-category-filter', itemMasterFilters.category, [{ value: '', label: 'All Categories' }, ...categoryOptions.map(category => ({ value: category, label: category }))], 'selectItemMasterFilterDropdown', 'All Categories', "'category'")}
+                        </div>
+                        <div class="field-group">
+                            <label class="field-title" for="item-type-filter">Type</label>
+                            ${renderCustomFormDropdown('item-type-filter', itemMasterFilters.type, [{ value: '', label: 'All Types' }, { value: 'Single', label: 'Single' }, { value: 'Set', label: 'Set' }], 'selectItemMasterFilterDropdown', 'All Types', "'type'")}
+                        </div>
+                        <button onclick="createRipple(event); itemMasterFilters = { search: '', category: '', type: '' }; renderItemList()" class="ripple-btn filter-action-btn secondary" aria-label="Reset item filters">
+                            <svg class="filter-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg>
+                            <span>Reset</span>
+                        </button>
+                    </div>
+                    <div class="data-table-wrap item-master-table-wrap">
+                        <table class="data-table item-master-table">
+                            <thead><tr><th>Item</th><th>SKU</th><th>Category</th><th>Type</th><th class="data-number">PR</th><th class="data-number">Received</th><th class="data-number">Remaining</th><th>Status</th><th></th></tr></thead>
+                            <tbody>${itemRows || '<tr><td colspan="9">No items match these filters.</td></tr>'}</tbody>
                         </table>
                     </div>
+                    <div class="item-mobile-list">${mobileCards || '<div class="modal-empty-state">No items match these filters.</div>'}</div>
                 </div>
             `;
         }
@@ -2524,12 +3890,12 @@
             const rows = getPrRows();
             const rowHtml = rows.map(row => `
                 <tr>
-                    <td>${escapeHtml(row.pr)}</td>
-                    <td>${escapeHtml(row.items)}</td>
-                    <td>${escapeHtml(row.requested)}</td>
-                    <td>${escapeHtml(row.received)}</td>
-                    <td>${escapeHtml(row.assigned)}</td>
-                    <td>${escapeHtml(row.remaining)}</td>
+                    <td class="data-code">${escapeHtml(row.pr)}</td>
+                    <td class="data-number">${escapeHtml(row.items)}</td>
+                    <td class="data-number">${escapeHtml(row.requested)}</td>
+                    <td class="data-number">${escapeHtml(row.received)}</td>
+                    <td class="data-number">${escapeHtml(row.assigned)}</td>
+                    <td class="data-number">${escapeHtml(row.remaining)}</td>
                     <td>${escapeHtml(row.createdAt)}</td>
                     <td>${statusPill(row.status)}</td>
                     <td>
@@ -2575,7 +3941,7 @@
                     </div>
                     <div class="data-table-wrap">
                         <table class="data-table">
-                            <thead><tr><th>PR#</th><th>Items</th><th>Requested</th><th>Received</th><th>Assigned</th><th>Remaining</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+                            <thead><tr><th>PR#</th><th class="data-number">Items</th><th class="data-number">Requested</th><th class="data-number">Received</th><th class="data-number">Assigned</th><th class="data-number">Remaining</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
                             <tbody>${rowHtml || '<tr><td colspan="9">No PR records yet.</td></tr>'}</tbody>
                         </table>
                     </div>
@@ -2865,11 +4231,15 @@
 
         function selectFormDropdown(id, value, label, event) {
             event.stopPropagation();
+            selectFormValue(id, value, label);
+            closeCustomDropdown(id);
+        }
+
+        function selectFormValue(id, value, label) {
             const input = document.getElementById(id);
             const labelEl = document.getElementById(`custom-dropdown-label-${id}`);
             if (input) input.value = value;
             if (labelEl) labelEl.innerText = label;
-            closeCustomDropdown(id);
         }
 
         function selectReportDropdown(field, id, value, label, event) {
@@ -2945,7 +4315,7 @@
             
             const label = document.getElementById(`custom-dropdown-label-${index}`);
             if (label) {
-                label.innerText = zone === 'Loading' ? 'Loading' : `Zone ${zone}`;
+                label.innerText = zone;
             }
 
             const menu = document.getElementById(`custom-dropdown-menu-${index}`);
@@ -2974,6 +4344,7 @@
         }
 
         function closeAllCustomDropdowns(event) {
+            closeItemActionMenus();
             document.querySelectorAll('[id^="custom-dropdown-menu-"]').forEach(menu => {
                 menu.classList.add('opacity-0', 'scale-95');
                 setTimeout(() => menu.classList.add('hidden'), 200);
@@ -3081,7 +4452,7 @@
             const remaining = item.qty - totalAssigned;
             const hasPhotos = item.attachedPhotos && item.attachedPhotos.length > 0;
             const currentZone = item.tempZone || 'A';
-            const displayZoneText = currentZone === 'Loading' ? 'Loading' : `Zone ${currentZone}`;
+            const displayZoneText = currentZone;
 
             return `
                 <div class="mt-4 pt-4 border-t border-slate-800/80 space-y-4">
@@ -3113,8 +4484,8 @@
                     ` : ''}
 
                     <!-- Custom Dropdown Input Controls Section -->
-                    <div class="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-3 sm:p-4 space-y-3">
-                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                    <div class="pallet-entry-panel bg-slate-950/40 border border-slate-800/80 rounded-2xl p-3 sm:p-4 space-y-3">
+                        <div class="pallet-entry-grid grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
                             <div class="sm:col-span-4 space-y-1">
                                 <label class="text-[11px] font-semibold text-slate-400 block">#Pallet</label>
                                 <input type="text" id="pallet-input-${index}" value="${item.tempPallet || ''}" oninput="updateTemp(${index}, 'pallet', this.value)" onkeydown="handleKeyDown(event, ${index})" class="w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner placeholder-slate-600" placeholder="e.g. P-101">
@@ -3123,7 +4494,7 @@
                             <!-- Custom Dropdown Select Menu -->
                             <div class="sm:col-span-3 space-y-1 relative">
                                 <label class="text-[11px] font-semibold text-slate-400 block">Zone</label>
-                                <div onclick="toggleCustomDropdown(${index}, event)" class="w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 rounded-xl px-3.5 py-2.5 text-slate-100 text-xs sm:text-sm flex items-center justify-between cursor-pointer select-none transition-all shadow-inner">
+                                <div onclick="toggleCustomDropdown(${index}, event)" class="zone-trigger w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 rounded-xl px-3.5 py-2.5 text-slate-100 text-xs sm:text-sm flex items-center justify-between cursor-pointer select-none transition-all shadow-inner">
                                     <span id="custom-dropdown-label-${index}" class="font-medium">${displayZoneText}</span>
                                     <span id="custom-dropdown-arrow-${index}" class="text-slate-400 font-bold transition-transform duration-200">⌄</span>
                                 </div>
@@ -3145,39 +4516,44 @@
                                 </div>
                             </div>
 
-                            <div class="sm:col-span-5 space-y-1">
+                            <div class="sm:col-span-4 space-y-1">
                                 <label class="text-[11px] font-semibold text-slate-400 block">Qty</label>
-                                <div class="flex items-center space-x-2">
-                                    <input type="number" id="qty-input-${index}" value="${item.tempQty !== undefined && item.tempQty !== '' ? item.tempQty : (remaining > 0 ? remaining : 0)}" oninput="updateTemp(${index}, 'qty', this.value)" onkeydown="handleKeyDown(event, ${index})" class="number-control w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 focus:border-blue-500 rounded-xl px-4 py-2.5 text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner font-semibold text-emerald-400">
-                                    <button onclick="createRipple(event); addLocation(${index})" class="ripple-btn px-4 py-2.5 bg-blue-600 hover:bg-blue-500 border border-blue-500/50 rounded-xl flex items-center justify-center text-white font-semibold text-xs sm:text-sm transition-all shadow-md shadow-blue-900/30 whitespace-nowrap flex-shrink-0">
-                                        <span>✓ Save</span>
-                                    </button>
-                                </div>
+                                <input type="number" id="qty-input-${index}" value="${item.tempQty !== undefined && item.tempQty !== '' ? item.tempQty : (remaining > 0 ? remaining : 0)}" oninput="updateTemp(${index}, 'qty', this.value)" onkeydown="handleKeyDown(event, ${index})" class="number-control w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 focus:border-blue-500 rounded-xl px-4 py-2.5 text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner font-semibold text-emerald-400">
+                            </div>
+
+                            <div class="sm:col-span-1 space-y-1">
+                                <label class="text-[11px] font-semibold text-slate-400 block opacity-0" aria-hidden="true">Save</label>
+                                <button onclick="createRipple(event); addLocation(${index})" class="save-location-btn ripple-btn w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-500 border border-blue-500/50 rounded-xl flex items-center justify-center text-white font-semibold text-xs sm:text-sm transition-all shadow-md shadow-blue-900/30 whitespace-nowrap flex-shrink-0">
+                                    <span>✓ Save</span>
+                                </button>
                             </div>
                         </div>
                     </div>
 
                     <!-- Attach Multiple Photos & Remove Transaction Actions -->
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800 transition-all hover:border-slate-700 mt-3">
-                        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 overflow-hidden w-full">
+                    <div class="stock-photo-panel flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800 transition-all hover:border-slate-700 mt-3">
+                        <div class="stock-photo-main flex flex-col sm:flex-row items-start sm:items-center gap-3 overflow-hidden w-full">
                             <input type="file" id="file-input-${index}" accept="image/*" multiple class="hidden" onchange="handlePhotoAttach(event, ${index})">
                             <button onclick="createRipple(event); document.getElementById('file-input-${index}').click()" class="ripple-btn px-3 py-1.5 rounded-lg border border-slate-600 hover:border-slate-400 bg-slate-800 hover:bg-slate-700 text-slate-200 transition text-xs flex-shrink-0">
                                 📷 Attach Photos
                             </button>
                             
                             <div class="flex flex-wrap items-center gap-2">
-                                ${hasPhotos ? item.attachedPhotos.map((photoSrc, pIdx) => `
-                                    <div class="relative group cursor-pointer" onclick="openImageViewer('${photoSrc}')">
-                                        <img src="${photoSrc}" alt="Thumbnail ${pIdx + 1}" class="w-10 h-10 object-cover rounded-lg border border-slate-700 hover:border-blue-500 transition">
-                                        <button onclick="createRipple(event); event.stopPropagation(); confirmRemoveSinglePhoto(${index}, ${pIdx})" class="ripple-btn absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full w-4 h-4 text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow">✕</button>
+                                ${hasPhotos ? item.attachedPhotos.map((photo, pIdx) => {
+                                    const photoUrl = typeof photo === 'string' ? photo : photo.url;
+                                    return `
+                                    <div class="stock-photo-thumb-wrap relative group cursor-pointer" ${photoUrl ? `onclick="openImageViewer('${jsString(photoUrl)}')"` : ''}>
+                                        ${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="Thumbnail ${pIdx + 1}" class="stock-photo-thumb w-10 h-10 object-cover rounded-lg border border-slate-700 hover:border-blue-500 transition">` : '<span class="stock-photo-loading">Loading</span>'}
+                                        <button onclick="createRipple(event); event.stopPropagation(); confirmRemoveSinglePhoto(${index}, ${pIdx})" class="ripple-btn stock-photo-remove absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full w-4 h-4 text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow">✕</button>
                                     </div>
-                                `).join('') : `
-                                    <span class="text-xs text-slate-400">No photos attached</span>
+                                `;
+                                }).join('') : `
+                                    <span class="stock-photo-empty text-xs text-slate-400">No photos attached</span>
                                 `}
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-between sm:justify-end space-x-2 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800 flex-shrink-0">
+                        <div class="stock-photo-actions flex items-center justify-between sm:justify-end space-x-2 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800 flex-shrink-0">
                             ${hasPhotos ? `<button onclick="createRipple(event); confirmRemoveAllPhotos(${index})" class="ripple-btn text-red-400 hover:text-red-300 text-xs transition-colors">Clear All</button>` : ''}
                             <button onclick="createRipple(event); confirmRemoveTransaction(${index})" class="ripple-btn px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/50 text-xs font-semibold transition-all flex items-center space-x-1">
                                 <span>Remove ID</span>
@@ -3203,7 +4579,6 @@
             const isExpanded = !inventory[index].isExpanded;
 
             inventory[index].isExpanded = isExpanded;
-            saveInventory();
             card.classList.toggle('expanded-card', isExpanded);
             row?.classList.toggle('row-expanded', isExpanded);
             chevron?.classList.toggle('expanded', isExpanded);
@@ -3230,21 +4605,38 @@
 
         function addLocation(index) {
             const item = inventory[index];
-            const pallet = item.tempPallet || '';
+            const pallet = (item.tempPallet || '').trim();
             const zone = item.tempZone || 'A';
             const totalAssigned = totalAbbr(item);
             const remaining = item.qty - totalAssigned;
             const qty = item.tempQty !== undefined && item.tempQty !== '' ? parseInt(item.tempQty) : remaining;
 
-            if (!pallet.trim()) {
+            if (!pallet) {
                 showAlertModal("Please enter a pallet number.");
                 return;
             }
 
+            if (Number.isNaN(qty) || qty <= 0) {
+                showAlertModal('Assignment quantity must be greater than zero.', 'Quantity Required');
+                return;
+            }
+
+            if (remaining <= 0) {
+                showAlertModal('This receipt line is already fully assigned.', 'Assignment Complete');
+                return;
+            }
+
+            if (qty > remaining) {
+                showAlertModal(`Only ${remaining} ${item.quantityUnit || 'pcs'} remain to be assigned.`, 'Quantity Exceeds Remaining');
+                return;
+            }
+
             item.locations.push({ 
+                id: createEntityId('assignment'),
                 pallet, 
                 zone, 
-                qty: isNaN(qty) ? 0 : qty,
+                qty,
+                quantityUnit: item.quantityUnit || 'pcs',
                 createdAt: getCurrentFormattedDateTime()
             });
 
@@ -3278,11 +4670,17 @@
         }
 
         function confirmRemoveTransaction(index) {
+            const target = inventory[index];
+            const receiptId = target.receiptId;
+            const receiptRows = inventory.filter(item => receiptId ? item.receiptId === receiptId : item === target);
             showConfirmDialog(
                 "Delete Transaction", 
-                `Are you sure you want to remove ID "${inventory[index].id}" item?`, 
-                () => {
-                    inventory.splice(index, 1);
+                `Are you sure you want to remove transaction "${target.id}" and its ${receiptRows.length} item line${receiptRows.length === 1 ? '' : 's'}?`,
+                async () => {
+                    const photos = receiptRows.flatMap(item => item.attachedPhotos || []).filter(photo => photo && typeof photo === 'object');
+                    await Promise.all(photos.map(photo => deletePhotoBlob(photo.id).catch(() => false)));
+                    photos.forEach(revokeAttachmentUrl);
+                    inventory = inventory.filter(item => receiptId ? item.receiptId !== receiptId : item !== target);
                     saveInventory();
                     renderSecondaryViews();
                     renderInventory();
@@ -3294,7 +4692,15 @@
             showConfirmDialog(
                 "Remove Photo", 
                 "Are you sure you want to remove this photo?", 
-                () => {
+                async () => {
+                    const photo = inventory[itemIdx].attachedPhotos[photoIdx];
+                    try {
+                        if (photo && typeof photo === 'object') await deletePhotoBlob(photo.id);
+                    } catch (error) {
+                        showAlertModal('The photo could not be removed from browser storage.', 'Photo Storage Error');
+                        return;
+                    }
+                    revokeAttachmentUrl(photo);
                     inventory[itemIdx].attachedPhotos.splice(photoIdx, 1);
                     saveInventory();
                     renderSecondaryViews();
@@ -3307,7 +4713,15 @@
             showConfirmDialog(
                 "Clear All Photos", 
                 "Are you sure you want to remove all attached photos for this item?", 
-                () => {
+                async () => {
+                    const photos = [...inventory[index].attachedPhotos];
+                    try {
+                        await Promise.all(photos.filter(photo => photo && typeof photo === 'object').map(photo => deletePhotoBlob(photo.id)));
+                    } catch (error) {
+                        showAlertModal('The photos could not be removed from browser storage.', 'Photo Storage Error');
+                        return;
+                    }
+                    photos.forEach(revokeAttachmentUrl);
                     inventory[index].attachedPhotos = [];
                     saveInventory();
                     renderSecondaryViews();
@@ -3316,33 +4730,47 @@
             );
         }
 
-        function handlePhotoAttach(event, index) {
-            const files = event.target.files;
-            if (files && files.length > 0) {
-                if (!inventory[index].attachedPhotos) {
-                    inventory[index].attachedPhotos = [];
-                }
+        async function handlePhotoAttach(event, index) {
+            const files = Array.from(event.target.files || []);
+            if (files.length === 0) return;
+            if (!inventory[index].attachedPhotos) inventory[index].attachedPhotos = [];
 
-                let loadedCount = 0;
-                Array.from(files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        inventory[index].attachedPhotos.push(e.target.result);
-                        loadedCount++;
-                        if (loadedCount === files.length) {
-                            saveInventory();
-                            renderSecondaryViews();
-                            renderInventory();
-                        }
+            const addedPhotos = [];
+            try {
+                for (const file of files) {
+                    const photo = {
+                        id: createEntityId('attachment'),
+                        fileName: file.name,
+                        mimeType: file.type || 'application/octet-stream',
+                        size: file.size,
+                        createdAt: getCurrentFormattedDateTime(),
+                        url: URL.createObjectURL(file),
+                        stored: true
                     };
-                    reader.readAsDataURL(file);
+                    await writePhotoBlob(photo.id, file);
+                    inventory[index].attachedPhotos.push(photo);
+                    addedPhotos.push(photo);
+                }
+            } catch (error) {
+                await Promise.all(addedPhotos.map(photo => deletePhotoBlob(photo.id).catch(() => false)));
+                addedPhotos.forEach(photo => {
+                    revokeAttachmentUrl(photo);
+                    inventory[index].attachedPhotos = inventory[index].attachedPhotos.filter(entry => entry.id !== photo.id);
                 });
+                showAlertModal('Photos could not be saved in browser storage.', 'Photo Storage Error');
+                return;
+            } finally {
+                event.target.value = '';
             }
+
+            saveInventory();
+            renderSecondaryViews();
+            renderInventory();
         }
 
         function openNewModal() {
             modalRows = [{ itemId: '', qty: '' }];
-            document.getElementById('new-id-input').value = 'FNG-' + (inventory.length + 1);
+            document.getElementById('new-id-input').value = getNextDocumentNumber('FNG', inventory.map(item => item.id));
             renderNewPrOptions();
             const selectedPr = document.getElementById('new-pr-input').value;
             const prItems = getPrItemsForReceiving(selectedPr);
@@ -3424,7 +4852,7 @@
             if (!dropdown) return;
             const options = purchaseRequests.map(pr => ({
                 value: pr.id,
-                label: `${pr.id} - ${pr.items.length} item${pr.items.length === 1 ? '' : 's'}`
+                label: `${pr.number} - ${pr.items.length} item${pr.items.length === 1 ? '' : 's'}`
             }));
             dropdown.innerHTML = renderCustomFormDropdown('new-pr-input', options[0]?.value || '', options, 'selectNewPrDropdown', 'Select PR');
         }
@@ -3501,7 +4929,7 @@
             const summaryHtml = `
                 <div class="modal-pr-summary">
                     <div>
-                        <strong>${escapeHtml(selectedPrRecord?.id || selectedPr)}</strong>
+                        <strong>${escapeHtml(selectedPrRecord?.number || selectedPr)}</strong>
                         ${escapeHtml(prItems.length)} PR item${prItems.length === 1 ? '' : 's'} selected
                     </div>
                     <div class="text-right">
@@ -3557,15 +4985,21 @@
 
         function createNewTransactions() {
             const id = document.getElementById('new-id-input').value.trim();
-            const pr = document.getElementById('new-pr-input').value.trim();
+            const prId = document.getElementById('new-pr-input').value.trim();
+            const prRecord = purchaseRequests.find(request => request.id === prId);
 
             if (!id) {
                 showAlertModal("Please enter a Transaction ID.");
                 return;
             }
 
-            if (!pr) {
+            if (!prRecord) {
                 showAlertModal("Please create and select a PR before receiving stock.", "PR Required");
+                return;
+            }
+
+            if (inventory.some(item => item.id.toLowerCase() === id.toLowerCase())) {
+                showAlertModal('This transaction number is already in use.', 'Duplicate Transaction');
                 return;
             }
 
@@ -3593,19 +5027,25 @@
             inventory.forEach(i => i.isExpanded = false);
 
             const creationTimestamp = getCurrentFormattedDateTime();
+            const receiptId = createEntityId('receipt');
 
             [...modalRows].reverse().forEach(row => {
-                const selectedLine = getReceivingLine(pr, row.itemId);
+                const selectedLine = getReceivingLine(prId, row.itemId);
                 const partsPerSet = Number.parseInt(selectedLine?.partsPerSet || 1, 10) || 1;
                 const partLabel = partsPerSet > 1 ? (row.partLabel || `1/${partsPerSet}`) : '';
                 inventory.unshift({
+                    receiptId,
+                    lineId: createEntityId('receipt-line'),
                     id,
-                    pr,
+                    prId,
+                    pr: prRecord.number,
                     createdAt: creationTimestamp,
+                    prLineId: selectedLine?.lineId || '',
                     itemId: row.itemId,
                     item: getReceivingItemName(row.itemId),
                     partLabel,
                     partsPerSet,
+                    quantityUnit: partsPerSet > 1 ? 'part' : (findMasterItemById(row.itemId)?.unit || 'pcs'),
                     qty: parseInt(row.qty),
                     isExpanded: false,
                     locations: [],
@@ -3638,6 +5078,7 @@
         renderSecondaryViews();
         renderInventory();
         switchView(currentView);
+        initializeAttachmentStorage();
     </script>
 </body>
 </html>
