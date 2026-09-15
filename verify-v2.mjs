@@ -2,8 +2,13 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { webcrypto } from 'node:crypto';
 
-const html = fs.readFileSync('index.html', 'utf8');
-const source = html.slice(html.indexOf('<script>') + 8, html.lastIndexOf('</script>'));
+const sourceFiles = [
+    'js/core.js',
+    'js/procurement.js',
+    'js/views.js',
+    'js/receiving.js'
+];
+const sources = sourceFiles.map(file => ({ file, source: fs.readFileSync(file, 'utf8') }));
 const elements = new Map();
 const storage = new Map();
 
@@ -55,11 +60,20 @@ const test = `
     const originalLines = migrated.receipts.flatMap(receipt => receipt.lines);
     const forbidden = ['isExpanded', 'tempPallet', 'tempZone', 'tempQty', 'attachedPhotos'];
 
-    document.getElementById('pr-id-input').value = 'PR-TEST-9001';
-    document.getElementById('pr-item-select').value = masterItems[0].id;
-    document.getElementById('pr-qty-input').value = '3';
-    createPurchaseRequest();
+    openPurchaseRequestModal();
+    document.getElementById('pr-modal-number-input').value = 'PR-TEST-9001';
+    prModalRows = [
+        { itemId: masterItems[0].id, itemQuery: getPrItemPickerLabel(masterItems[0]), qty: '3', errors: {} },
+        { itemId: masterItems[1].id, itemQuery: getPrItemPickerLabel(masterItems[1]), qty: '2', errors: {} }
+    ];
+    const multiItemPrCreated = submitPurchaseRequestModal();
     const newPr = purchaseRequests.find(pr => pr.number === 'PR-TEST-9001');
+
+    const prCountBeforeDuplicate = purchaseRequests.length;
+    document.getElementById('pr-modal-number-input').value = 'pr-test-9001';
+    prModalMode = 'create';
+    prModalRows = [{ itemId: masterItems[2].id, itemQuery: getPrItemPickerLabel(masterItems[2]), qty: '1', errors: {} }];
+    const duplicatePrBlocked = submitPurchaseRequestModal() === false && purchaseRequests.length === prCountBeforeDuplicate;
 
     document.getElementById('new-id-input').value = 'FNG-TEST-9001';
     document.getElementById('new-pr-input').value = newPr.id;
@@ -96,6 +110,9 @@ const test = `
             uiStatePersisted: originalLines.some(line => forbidden.some(key => key in line))
         },
         workflow: {
+            multiItemPrCreated,
+            multiItemPrLines: storedPr.lines.length === 2,
+            duplicatePrBlocked,
             prHasInternalId: storedPr.id !== storedPr.number,
             prLineHasInternalId: Boolean(storedPr.lines[0].id),
             receiptHasInternalId: storedReceipt.id !== storedReceipt.number,
@@ -109,14 +126,16 @@ const test = `
 `;
 
 vm.createContext(context);
-vm.runInContext(`${source}\n${test}`, context);
+sources.forEach(({ file, source }) => vm.runInContext(source, context, { filename: file }));
+vm.runInContext(test, context, { filename: 'workflow-test.js' });
 const reloadContext = {
     ...context,
     window: { ...context.window, history: { replaceState() {} } }
 };
 reloadContext.globalThis = reloadContext;
 vm.createContext(reloadContext);
-vm.runInContext(`${source}\n(() => {
+sources.forEach(({ file, source }) => vm.runInContext(source, reloadContext, { filename: file }));
+vm.runInContext(`(() => {
     const pr = purchaseRequests.find(entry => entry.number === 'PR-TEST-9001');
     const receipt = inventory.find(entry => entry.id === 'FNG-TEST-9001');
     globalThis.__reloadResult = {
@@ -125,5 +144,5 @@ vm.runInContext(`${source}\n(() => {
         assignmentRestored: Boolean(receipt && receipt.locations.some(location => location.pallet === 'P-TEST-1' && location.qty === 2)),
         uiStateReset: Boolean(receipt && receipt.isExpanded === false && receipt.tempPallet === '')
     };
-})();`, reloadContext);
+})();`, reloadContext, { filename: 'reload-test.js' });
 console.log(JSON.stringify({ ...context.__result, reload: reloadContext.__reloadResult }, null, 2));
